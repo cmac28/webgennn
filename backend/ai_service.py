@@ -88,21 +88,29 @@ When the user asks to modify, update, or change the website, you can see the cur
                 "image_urls": None
             }
 
-    async def generate_complete_project(self, prompt: str, model: str, framework: str, conversation_history: List[Dict]) -> Dict[str, Any]:
-        """Generate a complete, production-ready project"""
+    async def generate_complete_project(self, prompt: str, model: str, framework: str, conversation_history: List[Dict], current_website: Optional[Dict] = None) -> Dict[str, Any]:
+        """Generate a complete, production-ready project with iterative editing support"""
         provider, model_name = self._get_model_config(model)
         session_id = f"project_{os.urandom(8).hex()}"
         
         logger.info(f"Starting complete project generation with {provider}/{model_name}")
         logger.info(f"User prompt: {prompt}")
         
+        if current_website:
+            logger.info(f"🔄 ITERATIVE EDITING MODE: Modifying existing website")
+            logger.info(f"   Existing HTML: {len(current_website.get('html_content', ''))} chars")
+            logger.info(f"   Existing CSS: {len(current_website.get('css_content', ''))} chars")
+            logger.info(f"   Existing JS: {len(current_website.get('js_content', ''))} chars")
+        else:
+            logger.info(f"🆕 NEW PROJECT MODE: Creating from scratch")
+        
         try:
             # First, analyze what the user is ACTUALLY asking for
-            analysis = await self._analyze_user_intent(prompt, provider, model_name, session_id)
+            analysis = await self._analyze_user_intent(prompt, provider, model_name, session_id, current_website)
             logger.info(f"Intent analysis: {analysis}")
             
-            # Generate frontend with context
-            frontend_result = await self._generate_contextual_frontend(prompt, analysis, provider, model_name, session_id)
+            # Generate frontend with context (pass existing website for iterative editing)
+            frontend_result = await self._generate_contextual_frontend(prompt, analysis, provider, model_name, session_id, current_website)
             
             # Generate backend
             backend_result = await self._generate_backend(prompt, provider, model_name, session_id)
