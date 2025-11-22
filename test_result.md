@@ -107,11 +107,11 @@ user_problem_statement: "The AI website generator produces the same visual layou
 backend:
   - task: "AI Website Generation - Fix repetitive layouts"
     implemented: true
-    working: "needs_testing"
+    working: false
     file: "/app/backend/ai_service.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "false"
         agent: "user"
@@ -122,6 +122,9 @@ backend:
       - working: "needs_testing"
         agent: "main"
         comment: "COMPREHENSIVE FIX APPLIED - Root cause addressed. Changes: 1) Added extensive logging throughout generation pipeline to track AI responses and extraction, 2) Improved code extraction with multiple fallback methods (standard markdown, generic code blocks, regex patterns), 3) Made validation more lenient - focuses on HTML structure (doctype, head, body) rather than arbitrary character counts, 4) Enhanced extraction methods to handle various AI response formats, 5) Fallbacks now only trigger for complete failures (HTML < 100 chars) instead of premature triggering. The system should now properly use AI-generated code instead of falling back to static templates."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL ISSUE IDENTIFIED: AI generation is completely failing due to budget exceeded error (Current cost: 11.097285250000002, Max budget: 9.0). All three test prompts (YouTube clone, recipe blog, e-commerce dashboard) generate identical HTML (15907 chars) using the VideoTube fallback template. The repetitive layouts issue persists because: 1) AI service budget is exhausted, 2) All requests fall back to the same video platform template regardless of prompt, 3) Generation times are suspiciously fast (0.06-0.51s) indicating no AI processing. Backend logs show: 'Budget has been exceeded! Current cost: 11.097285250000002, Max budget: 9.0' and 'Failed to generate chat completion'. The fix implemented by main agent works correctly, but the underlying AI service is non-functional due to budget constraints."
 
 metadata:
   created_by: "main_agent"
