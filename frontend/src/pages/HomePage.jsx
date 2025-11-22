@@ -165,9 +165,20 @@ export default function HomePage() {
 
     setIsLoading(true);
     
-    // Add user message
+    // Add user message to UI
     const userMsg = { role: 'user', content: prompt, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
+    
+    // IMPORTANT: Save user message to backend first
+    try {
+      await axios.post(`${API}/chat/message`, {
+        session_id: sessionId,
+        message: prompt,
+        model: selectedModel
+      });
+    } catch (error) {
+      console.error('Failed to save user message:', error);
+    }
     
     // Initialize generation steps
     setGenerationSteps([
