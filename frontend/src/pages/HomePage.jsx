@@ -121,6 +121,16 @@ export default function HomePage() {
       return;
     }
 
+    // Check if message is asking for website generation or modification
+    const isWebsiteRequest = detectWebsiteIntent(message);
+    
+    if (isWebsiteRequest) {
+      // Route to website generation instead of chat
+      console.log('🔄 Detected website generation/modification request - routing to generateWebsite');
+      await generateWebsite(message);
+      return;
+    }
+
     setIsLoading(true);
     
     // Add user message immediately
@@ -155,6 +165,24 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const detectWebsiteIntent = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Keywords indicating website generation/modification
+    const generationKeywords = [
+      'create', 'build', 'make', 'generate', 'design',
+      'add', 'modify', 'change', 'update', 'edit',
+      'remove', 'delete', 'fix', 'improve', 'enhance',
+      'website', 'page', 'site', 'clone', 'app',
+      'button', 'section', 'feature', 'component',
+      'color', 'style', 'layout', 'header', 'footer',
+      'navigation', 'nav', 'menu', 'sidebar'
+    ];
+    
+    // Check if message contains any generation keywords
+    return generationKeywords.some(keyword => lowerMessage.includes(keyword));
   };
 
   const generateWebsite = async (prompt) => {
