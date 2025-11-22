@@ -127,11 +127,11 @@ backend:
   
   - task: "Iterative Editing Support"
     implemented: true
-    working: "needs_testing"
+    working: false
     file: "/app/backend/ai_service.py, /app/backend/server.py, /app/frontend/src/pages/HomePage.jsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "needs_testing"
         agent: "main"
@@ -151,6 +151,9 @@ backend:
       - working: "needs_testing"
         agent: "main"
         comment: "ADVANCED EDIT VALIDATION & RETRY SYSTEM - Latest enhancements to prevent regeneration: 1) Edit mode detection based on existing content size (>500 chars), 2) Complete existing code shown to AI (full HTML/CSS/JS, not truncated), 3) Edit validation checks length differences and class preservation to detect regeneration, 4) Automatic retry with STRONGER instructions if AI regenerates instead of edits, 5) Validation thresholds: >70% length change AND <30% class preservation = regeneration detected. System now has safeguards to ensure AI edits rather than rebuilds. Testing needed to verify: a) No blank white/black/gray screens, b) Correct sections edited, c) Can ADD features, d) Can REMOVE features, e) Surgical precision in editing."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL ISSUE: AI SERVICE BUDGET EXCEEDED - Comprehensive testing attempted but failed due to budget constraints. Backend logs show: 'Budget has been exceeded! Current cost: 9.02437425, Max budget: 8.595893071999999'. All website generation requests are failing and falling back to static VideoTube template (15907 chars) regardless of user prompts. Testing results: 1) Session creation: ✅ WORKING, 2) Website generation API: ❌ FAILING - returns VideoTube template instead of requested content, 3) Generated HTML: 15907 chars but wrong content (VideoTube instead of fitness app), 4) Edit functionality: ❌ CANNOT TEST - initial generation fails, 5) Advanced editing features: ❌ CANNOT TEST - AI service non-functional. The iterative editing system implementation appears correct based on code review, but cannot be validated due to AI service budget exhaustion. IMMEDIATE ACTION REQUIRED: Either increase Emergent LLM API budget or implement alternative AI provider to restore functionality."
   - task: "File-based Preview System - Professional Architecture"
     implemented: true
     working: true
