@@ -1,0 +1,1 @@
+# Create a simple landing page with a hero section and contact form
