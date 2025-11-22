@@ -120,6 +120,18 @@ backend:
     stuck_count: 0
     priority: "high"
     needs_retesting: false
+  
+  - task: "Iterative Editing Support"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/backend/ai_service.py, /app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Implemented iterative editing feature. Backend now: 1) Loads existing website from database when generating, 2) Passes current website context to AI service, 3) AI analyzes if request is for NEW project or MODIFICATION, 4) For modifications: includes existing code in prompt (3000 chars HTML, 2000 chars CSS, 1500 chars JS), 5) Instructs AI to keep existing features and only add/modify what user requests. The _generate_contextual_frontend method now accepts current_website parameter and builds appropriate context for the AI to understand it's an iterative edit."
   - task: "File-based Preview System - Professional Architecture"
     implemented: true
     working: true
