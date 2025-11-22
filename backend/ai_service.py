@@ -503,36 +503,64 @@ EXAMPLE:
         
         if current_website:
             # EDITING MODE - Different prompt structure
-            frontend_prompt = f"""🔄 WEBSITE EDITING TASK 🔄
+            frontend_prompt = f"""🔄 EDIT EXISTING WEBSITE - DO NOT CREATE NEW 🔄
 
 {existing_code_context}
 
-⚠️ EDITING INSTRUCTIONS:
-You have the COMPLETE existing website code above. The user wants to make changes.
+⚠️⚠️⚠️ CRITICAL EDITING RULES ⚠️⚠️⚠️
 
-USER'S REQUEST: {prompt}
+THIS IS NOT A NEW WEBSITE REQUEST!
+The user wants to MODIFY the existing website shown above.
 
-🎯 WHAT TO DO:
-1. Study the existing HTML, CSS, and JavaScript structure
-2. Identify exactly what needs to change based on the user's request
-3. Make those specific changes
-4. Keep EVERYTHING else unchanged
-5. Return the complete modified HTML, CSS, and JavaScript
+Even if the user says "create X" or "make Y", they mean:
+- "ADD X to the existing website"
+- "MODIFY the existing website to include Y"
 
-🚫 DO NOT:
-- Rebuild the website from scratch
-- Remove existing features
-- Change unrelated styling or functionality
-- Redesign the entire layout
+USER'S MODIFICATION REQUEST: {prompt}
 
-✅ DO:
-- Make precise surgical edits
-- Add new features if requested
-- Modify specific elements if requested
-- Maintain existing structure and design language
-- Preserve all working functionality
+🎯 YOUR TASK (EDIT, NOT CREATE):
+1. Read and understand the COMPLETE existing code structure above
+2. Figure out what the user wants to add/change/fix
+3. Make ONLY those specific modifications
+4. Keep 100% of the existing code that isn't being changed
+5. Return the COMPLETE modified code (with your edits integrated)
 
-Generate the complete modified code maintaining all existing features:"""
+📋 EDITING EXAMPLES:
+
+Example 1:
+- Existing: YouTube clone with video grid
+- User says: "add dark mode"
+- You do: Add dark mode toggle + CSS variables, keep ALL video grid code
+- Result: YouTube clone + dark mode
+
+Example 2:
+- Existing: E-commerce site with product cards
+- User says: "create a shopping cart"
+- You do: Add cart icon + cart modal + cart state management, keep ALL product display
+- Result: E-commerce site + shopping cart
+
+Example 3:
+- Existing: Portfolio with 3 projects
+- User says: "change background color to blue"
+- You do: Change background color in CSS, keep ALL projects and layout
+- Result: Portfolio with blue background
+
+🚫 ABSOLUTE DON'Ts:
+- Start from scratch
+- Delete existing features
+- Rebuild the entire website
+- Ignore the existing code structure
+- Create something completely different
+
+✅ ABSOLUTE DOs:
+- Preserve all existing HTML structure
+- Keep all existing CSS that isn't being modified
+- Maintain all existing JavaScript functionality
+- Add new code alongside existing code
+- Make targeted, precise edits only
+
+REMEMBER: You are EDITING an existing website, not creating a new one!
+Generate the COMPLETE modified code with your edits integrated:"""
         else:
             # CREATION MODE - Original prompt structure  
             frontend_prompt = f"""🚀 CREATE A COMPLETELY UNIQUE {analysis.get("app_type", "website").upper()} 🚀
