@@ -22,16 +22,14 @@ class AIService:
         return model_map.get(model, ("openai", "gpt-5"))
 
     async def generate_response(self, prompt: str, model: str, session_id: str) -> Dict[str, Any]:
-        """
-        Generate AI response for user prompt
-        """
+        """Generate AI response for user prompt"""
         provider, model_name = self._get_model_config(model)
         
         try:
             chat = LlmChat(
                 api_key=self.api_key,
                 session_id=session_id,
-                system_message="You are Code Weaver, an expert AI assistant that helps users create professional websites. You understand web design, modern frameworks, and can generate clean, production-ready code. Always be helpful, creative, and provide clear explanations."
+                system_message="You are Code Weaver, an expert AI assistant that helps users create professional, production-ready web applications. You understand full-stack development, modern frameworks, and can generate clean, scalable code with backends, frontends, and databases. Always be helpful, creative, and provide clear explanations."
             )
             chat.with_model(provider, model_name)
             
@@ -51,337 +49,518 @@ class AIService:
                 "image_urls": None
             }
 
-    async def generate_website(self, prompt: str, model: str, framework: str, conversation_history: List[Dict]) -> Dict[str, Any]:
+    async def generate_complete_project(self, prompt: str, model: str, framework: str, conversation_history: List[Dict]) -> Dict[str, Any]:
         """
-        Generate complete website with proper HTML/CSS/JS
+        Generate a complete, production-ready project with:
+        - Frontend HTML/CSS/JavaScript
+        - Python FastAPI backend
+        - Database models
+        - API endpoints
+        - README documentation
         """
         provider, model_name = self._get_model_config(model)
-        session_id = f"gen_{os.urandom(8).hex()}"
+        session_id = f"project_{os.urandom(8).hex()}"
         
-        logger.info(f"Starting website generation with {provider}/{model_name}")
+        logger.info(f"Starting complete project generation with {provider}/{model_name}")
         logger.info(f"User prompt: {prompt}")
         
         try:
-            # Direct generation with very explicit instructions
-            result = await self._generate_complete_website(prompt, provider, model_name, session_id)
+            # Generate frontend
+            frontend_result = await self._generate_frontend(prompt, provider, model_name, session_id)
             
-            # Log what was generated
-            html_len = len(result.get('html_content', ''))
-            css_len = len(result.get('css_content', ''))
-            js_len = len(result.get('js_content', ''))
+            # Generate backend
+            backend_result = await self._generate_backend(prompt, provider, model_name, session_id)
             
-            logger.info(f"Generated HTML: {html_len} chars, CSS: {css_len} chars, JS: {js_len} chars")
+            # Generate documentation
+            readme = await self._generate_readme(prompt, provider, model_name, session_id)
             
-            # Validate we have substantial content
-            if html_len < 500:
-                logger.error(f"HTML too short ({html_len} chars), retrying...")
-                result = await self._generate_complete_website(prompt, provider, model_name, session_id + "_retry")
-                html_len = len(result.get('html_content', ''))
-                logger.info(f"Retry generated HTML: {html_len} chars")
+            # Compile all files
+            files = []
             
-            return result
+            # Frontend files
+            if frontend_result.get('html'):
+                files.append({
+                    "filename": "index.html",
+                    "content": frontend_result['html'],
+                    "file_type": "html",
+                    "description": "Main HTML file with structure and content"
+                })
+            
+            if frontend_result.get('css'):
+                files.append({
+                    "filename": "styles.css",
+                    "content": frontend_result['css'],
+                    "file_type": "css",
+                    "description": "Stylesheet with modern, responsive design"
+                })
+            
+            if frontend_result.get('js'):
+                files.append({
+                    "filename": "app.js",
+                    "content": frontend_result['js'],
+                    "file_type": "js",
+                    "description": "JavaScript for interactivity and API calls"
+                })
+            
+            # Backend files
+            if backend_result.get('python'):
+                files.append({
+                    "filename": "server.py",
+                    "content": backend_result['python'],
+                    "file_type": "python",
+                    "description": "FastAPI backend with routes and business logic"
+                })
+            
+            if backend_result.get('requirements'):
+                files.append({
+                    "filename": "requirements.txt",
+                    "content": backend_result['requirements'],
+                    "file_type": "txt",
+                    "description": "Python dependencies"
+                })
+            
+            if backend_result.get('models'):
+                files.append({
+                    "filename": "models.py",
+                    "content": backend_result['models'],
+                    "file_type": "python",
+                    "description": "Database models and schemas"
+                })
+            
+            # Documentation
+            if readme:
+                files.append({
+                    "filename": "README.md",
+                    "content": readme,
+                    "file_type": "md",
+                    "description": "Project documentation"
+                })
+            
+            # Package.json for frontend dependencies
+            package_json = self._generate_package_json(prompt)
+            files.append({
+                "filename": "package.json",
+                "content": package_json,
+                "file_type": "json",
+                "description": "Frontend dependencies and scripts"
+            })
+            
+            logger.info(f"Generated complete project with {len(files)} files")
+            
+            return {
+                "html_content": frontend_result.get('html', ''),
+                "css_content": frontend_result.get('css', ''),
+                "js_content": frontend_result.get('js', ''),
+                "python_backend": backend_result.get('python', ''),
+                "requirements_txt": backend_result.get('requirements', ''),
+                "package_json": package_json,
+                "readme": readme,
+                "structure": {
+                    "frontend": ["index.html", "styles.css", "app.js"],
+                    "backend": ["server.py", "models.py", "requirements.txt"],
+                    "docs": ["README.md"]
+                },
+                "files": files
+            }
             
         except Exception as e:
-            logger.error(f"Website generation failed: {str(e)}", exc_info=True)
-            return self._create_fallback_website(prompt)
+            logger.error(f"Complete project generation failed: {str(e)}", exc_info=True)
+            # Return basic fallback
+            return await self._generate_fallback_project(prompt)
 
-    async def _generate_complete_website(self, prompt: str, provider: str, model: str, session_id: str) -> Dict[str, Any]:
-        """
-        Generate a complete website with explicit, forceful prompting
-        """
+    async def _generate_frontend(self, prompt: str, provider: str, model: str, session_id: str) -> Dict[str, str]:
+        """Generate professional frontend with separated HTML/CSS/JS"""
         chat = LlmChat(
             api_key=self.api_key,
-            session_id=session_id,
-            system_message="""You are an expert full-stack web developer. You MUST generate complete, working HTML websites.
+            session_id=f"{session_id}_frontend",
+            system_message="""You are an expert frontend developer. Generate modern, professional web interfaces.
 
-CRITICAL RULES - FOLLOW EXACTLY:
-1. Generate COMPLETE HTML documents (minimum 1000 characters)
-2. Include ALL HTML structure: <!DOCTYPE html>, <html>, <head>, <body>
-3. Embed ALL CSS inside <style> tags in the <head>
-4. Embed ALL JavaScript inside <script> tags before </body>
-5. Use modern, beautiful design with proper colors and spacing
-6. Make it fully responsive with media queries
-7. Include realistic content (not "Lorem ipsum" placeholders)
-8. Add interactivity with JavaScript where appropriate
-9. Use semantic HTML5 tags
-10. Output ONLY the HTML code, nothing else
+REQUIREMENTS:
+1. Generate SEPARATE files for HTML, CSS, and JavaScript
+2. Use modern design patterns (Flexbox, Grid, CSS Variables)
+3. Make it fully responsive (mobile-first design)
+4. Add smooth animations and transitions
+5. Use semantic HTML5
+6. Implement proper accessibility (ARIA labels, keyboard navigation)
+7. Add real, meaningful content (no placeholders)
+8. Include interactive JavaScript features
+9. Make it production-ready
 
-You will be penalized for:
-- Empty or minimal responses
-- Missing CSS or JavaScript
-- Placeholder text instead of real content
-- Incomplete HTML structure
-- Black screens or blank pages"""
+OUTPUT FORMAT:
+```html
+[Complete HTML with <link> to styles.css and <script src="app.js">]
+```
+
+```css
+[Complete CSS with modern styling, responsive breakpoints, animations]
+```
+
+```javascript
+[Complete JavaScript with event handlers, API calls, and interactivity]
+```"""
         )
         chat.with_model(provider, model)
         
-        # Create very explicit prompt
-        full_prompt = f"""CREATE A COMPLETE, WORKING WEBSITE:
+        full_prompt = f"""Create a professional, modern frontend for:
 
 {prompt}
 
-REQUIREMENTS:
-1. Full HTML5 document structure
-2. Embedded CSS with modern styling (colors, fonts, spacing, animations)
-3. Embedded JavaScript for any interactive features
-4. Responsive design (mobile, tablet, desktop)
-5. Professional appearance
-6. Real, meaningful content (not placeholders)
+Generate THREE separate files:
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+1. **index.html** - Complete HTML structure with:
+   - Semantic HTML5 tags
+   - Proper meta tags and SEO
+   - Link to styles.css
+   - Script tag for app.js at the end
+   
+2. **styles.css** - Modern CSS with:
+   - CSS custom properties (variables)
+   - Flexbox/Grid layouts
+   - Responsive breakpoints (@media queries)
+   - Smooth animations and transitions
+   - Professional color scheme
+   - Modern typography
+   
+3. **app.js** - JavaScript with:
+   - DOM manipulation
+   - Event listeners
+   - Form validation (if forms exist)
+   - API calls (fetch)
+   - Smooth interactions
+   - Modern ES6+ syntax
 
+Make it look PROFESSIONAL and MODERN. Think of popular websites like Stripe, Linear, or Vercel.
+
+Format your response with three code blocks:
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Title</title>
-    <style>
-        /* PUT ALL CSS HERE */
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        
-        body {{
-            font-family: Arial, sans-serif;
-            /* MORE STYLES */
-        }}
-        
-        /* ADD ALL YOUR CSS RULES HERE */
-    </style>
-</head>
-<body>
-    <!-- PUT ALL HTML CONTENT HERE -->
-    
-    <script>
-        // PUT ALL JAVASCRIPT HERE
-    </script>
-</body>
-</html>
+[HTML CODE]
 ```
 
-START GENERATING NOW. Output ONLY the HTML code block above with your complete website."""
+```css
+[CSS CODE]
+```
+
+```javascript
+[JS CODE]
+```"""
         
         user_message = UserMessage(text=full_prompt)
         response = await chat.send_message(user_message)
         
-        logger.info(f"AI Response length: {len(response)} characters")
-        logger.info(f"Response preview: {response[:500]}...")
+        # Extract each file type
+        html = self._extract_code_block(response, "html") or ""
+        css = self._extract_code_block(response, "css") or ""
+        js = self._extract_code_block(response, "javascript") or self._extract_code_block(response, "js") or ""
         
-        # Extract HTML with multiple strategies
-        html_content = self._extract_html_aggressively(response)
+        # If extraction failed, try alternative methods
+        if not html and "<!DOCTYPE" in response:
+            html = self._extract_html_direct(response)
         
-        if not html_content or len(html_content) < 500:
-            logger.warning("HTML extraction failed or too short, using full response")
-            html_content = response
+        # Ensure HTML links to CSS and JS
+        if html and "<link" not in html:
+            head_end = html.find("</head>")
+            if head_end > 0:
+                html = html[:head_end] + '    <link rel="stylesheet" href="styles.css">\n' + html[head_end:]
         
-        # Ensure proper HTML structure
-        html_content = self._ensure_proper_html(html_content)
+        if html and "<script" not in html:
+            body_end = html.find("</body>")
+            if body_end > 0:
+                html = html[:body_end] + '    <script src="app.js"></script>\n' + html[body_end:]
         
-        # Extract embedded CSS and JS for reference
-        css_content = self._extract_embedded_css(html_content)
-        js_content = self._extract_embedded_js(html_content)
-        
-        logger.info(f"Final HTML length: {len(html_content)}")
-        logger.info(f"Extracted CSS length: {len(css_content)}")
-        logger.info(f"Extracted JS length: {len(js_content)}")
+        logger.info(f"Generated frontend: HTML={len(html)} chars, CSS={len(css)} chars, JS={len(js)} chars")
         
         return {
-            "html_content": html_content,
-            "css_content": css_content,
-            "js_content": js_content,
-            "structure": {}
+            "html": html,
+            "css": css,
+            "js": js
         }
 
-    def _extract_html_aggressively(self, text: str) -> str:
-        """Extract HTML using multiple strategies"""
-        # Strategy 1: Look for ```html code block
-        if "```html" in text:
-            try:
-                parts = text.split("```html")
-                if len(parts) > 1:
-                    html = parts[1].split("```")[0].strip()
-                    if len(html) > 100:
-                        logger.info("Extracted HTML from ```html block")
-                        return html
-            except:
-                pass
-        
-        # Strategy 2: Look for any ``` code block with HTML content
-        if "```" in text:
-            try:
-                parts = text.split("```")
-                for i in range(1, len(parts), 2):
-                    potential_html = parts[i].strip()
-                    # Remove language identifier if present
-                    if potential_html.startswith(("html\n", "HTML\n")):
-                        potential_html = potential_html.split("\n", 1)[1]
-                    
-                    if "<!DOCTYPE" in potential_html or "<html" in potential_html:
-                        logger.info("Extracted HTML from generic code block")
-                        return potential_html
-            except:
-                pass
-        
-        # Strategy 3: Look for DOCTYPE or <html> directly in response
-        if "<!DOCTYPE" in text or "<html" in text:
-            try:
-                # Find start of HTML
-                start_idx = text.find("<!DOCTYPE")
-                if start_idx == -1:
-                    start_idx = text.find("<html")
-                
-                if start_idx != -1:
-                    # Find end of HTML
-                    end_idx = text.rfind("</html>")
-                    if end_idx != -1:
-                        html = text[start_idx:end_idx + 7].strip()
-                        logger.info("Extracted HTML by finding DOCTYPE/html tags")
-                        return html
-            except:
-                pass
-        
-        # Strategy 4: Use regex to find HTML structure
-        try:
-            pattern = r'<!DOCTYPE html>.*?</html>'
-            match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
-            if match:
-                logger.info("Extracted HTML using regex")
-                return match.group(0)
-        except:
-            pass
-        
-        logger.warning("All HTML extraction strategies failed")
-        return ""
+    async def _generate_backend(self, prompt: str, provider: str, model: str, session_id: str) -> Dict[str, str]:
+        """Generate Python FastAPI backend with routes and models"""
+        chat = LlmChat(
+            api_key=self.api_key,
+            session_id=f"{session_id}_backend",
+            system_message="""You are an expert backend developer specializing in Python and FastAPI.
 
-    def _ensure_proper_html(self, html: str) -> str:
-        """Ensure HTML has proper structure"""
-        html = html.strip()
-        
-        # Add DOCTYPE if missing
-        if not html.startswith("<!DOCTYPE"):
-            html = "<!DOCTYPE html>\n" + html
-        
-        # Ensure it has <html> tags
-        if "<html" not in html.lower():
-            html = f"<!DOCTYPE html>\n<html lang='en'>\n<head>\n<meta charset='UTF-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n<title>Generated Website</title>\n</head>\n<body>\n{html}\n</body>\n</html>"
-        
-        # Ensure it has closing tags
-        if "</html>" not in html.lower():
-            html += "\n</html>"
-        
-        return html
+Generate production-ready backend code with:
+1. FastAPI application with proper structure
+2. RESTful API endpoints
+3. Pydantic models for validation
+4. Database integration (MongoDB with Motor)
+5. CORS configuration
+6. Error handling
+7. Logging
+8. Environment variables
+9. Security best practices
 
-    def _extract_embedded_css(self, html: str) -> str:
-        """Extract CSS from <style> tags"""
-        try:
-            pattern = r'<style[^>]*>(.*?)</style>'
-            matches = re.findall(pattern, html, re.DOTALL | re.IGNORECASE)
-            return "\n\n".join(matches)
-        except:
-            return ""
+Make it clean, scalable, and production-ready."""
+        )
+        chat.with_model(provider, model)
+        
+        backend_prompt = f"""Create a Python FastAPI backend for:
 
-    def _extract_embedded_js(self, html: str) -> str:
-        """Extract JavaScript from <script> tags"""
-        try:
-            pattern = r'<script[^>]*>(.*?)</script>'
-            matches = re.findall(pattern, html, re.DOTALL | re.IGNORECASE)
-            # Filter out external scripts (those with src attribute)
-            return "\n\n".join([m for m in matches if m.strip()])
-        except:
-            return ""
+{prompt}
 
-    def _create_fallback_website(self, prompt: str) -> Dict[str, Any]:
-        """Create a fallback website if generation fails"""
+Generate TWO files:
+
+1. **server.py** - FastAPI application with:
+   - Proper imports
+   - FastAPI app initialization
+   - CORS middleware
+   - API routes (GET, POST, PUT, DELETE as needed)
+   - Request/response models
+   - Error handling
+   - MongoDB integration using Motor
+   - Environment variable loading
+   
+2. **models.py** - Pydantic models with:
+   - Data validation models
+   - Database schemas
+   - Type hints
+   
+3. **requirements.txt** - List all Python dependencies:
+   - fastapi
+   - uvicorn
+   - motor (MongoDB async driver)
+   - pydantic
+   - python-dotenv
+   - Any other needed packages
+
+Format your response:
+```python
+# server.py
+[SERVER CODE]
+```
+
+```python
+# models.py
+[MODELS CODE]
+```
+
+```txt
+# requirements.txt
+[DEPENDENCIES]
+```"""
+        
+        user_message = UserMessage(text=backend_prompt)
+        response = await chat.send_message(user_message)
+        
+        # Extract Python files
+        python_code = self._extract_code_block(response, "python")
+        
+        # Try to separate server.py and models.py
+        server_py = ""
+        models_py = ""
+        
+        if "# server.py" in response and "# models.py" in response:
+            parts = response.split("# models.py")
+            server_part = parts[0]
+            models_part = parts[1]
+            
+            server_py = self._extract_code_block(server_part, "python")
+            models_py = self._extract_code_block(models_part, "python")
+        elif python_code:
+            server_py = python_code
+        
+        # Extract requirements.txt
+        requirements = self._extract_code_block(response, "txt") or self._extract_code_block(response, "text")
+        
+        if not requirements:
+            # Generate default requirements
+            requirements = """fastapi==0.104.1
+uvicorn==0.24.0
+motor==3.3.2
+pydantic==2.5.0
+python-dotenv==1.0.0
+pymongo==4.6.0"""
+        
+        logger.info(f"Generated backend: server.py={len(server_py)} chars, models.py={len(models_py)} chars")
+        
+        # Combine or use separate
+        full_backend = server_py
+        if models_py:
+            full_backend += f"\n\n# MODELS (models.py):\n{models_py}"
+        
+        return {
+            "python": full_backend,
+            "requirements": requirements,
+            "models": models_py
+        }
+
+    async def _generate_readme(self, prompt: str, provider: str, model: str, session_id: str) -> str:
+        """Generate README documentation"""
+        chat = LlmChat(
+            api_key=self.api_key,
+            session_id=f"{session_id}_docs",
+            system_message="You are a technical writer. Create clear, professional documentation."
+        )
+        chat.with_model(provider, model)
+        
+        readme_prompt = f"""Create a professional README.md for this project:
+
+{prompt}
+
+Include:
+- Project title and description
+- Features list
+- Installation instructions
+- How to run the project
+- API endpoints (if backend exists)
+- Technologies used
+- Project structure
+- Future improvements
+
+Format in Markdown."""
+        
+        user_message = UserMessage(text=readme_prompt)
+        response = await chat.send_message(user_message)
+        
+        readme = self._extract_code_block(response, "markdown") or self._extract_code_block(response, "md") or response
+        
+        return readme
+
+    def _generate_package_json(self, prompt: str) -> str:
+        """Generate package.json for frontend"""
+        return json.dumps({
+            "name": "generated-website",
+            "version": "1.0.0",
+            "description": f"Generated website: {prompt[:100]}",
+            "scripts": {
+                "start": "python -m http.server 8000",
+                "dev": "live-server"
+            },
+            "dependencies": {},
+            "devDependencies": {}
+        }, indent=2)
+
+    async def _generate_fallback_project(self, prompt: str) -> Dict[str, Any]:
+        """Fallback project if generation fails"""
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated Website</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }}
-        
-        .container {{
-            background: white;
-            padding: 60px 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 800px;
-            text-align: center;
-        }}
-        
-        h1 {{
-            color: #333;
-            font-size: 3em;
-            margin-bottom: 20px;
-        }}
-        
-        p {{
-            color: #666;
-            font-size: 1.2em;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }}
-        
-        .button {{
-            display: inline-block;
-            padding: 15px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: bold;
-            transition: transform 0.3s ease;
-        }}
-        
-        .button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }}
-    </style>
+    <title>Generated Project</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Welcome</h1>
-        <p>This is your generated website based on: <strong>{prompt[:200]}</strong></p>
-        <p>The website generation system is working. This is a fallback template.</p>
-        <a href="#" class="button">Get Started</a>
+        <h1>🚀 Your Project</h1>
+        <p>{prompt}</p>
+        <button id="actionBtn">Get Started</button>
     </div>
-    
-    <script>
-        console.log('Website loaded successfully!');
-        document.querySelector('.button').addEventListener('click', (e) => {{
-            e.preventDefault();
-            alert('Button clicked! This website is working.');
-        }});
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>"""
         
+        css = """* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background: white;
+    padding: 60px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+button {
+    margin-top: 20px;
+    padding: 15px 40px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+}"""
+        
+        js = """document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('actionBtn');
+    
+    btn.addEventListener('click', () => {
+        alert('Button clicked! This website is working.');
+    });
+    
+    console.log('Website loaded successfully!');
+});"""
+        
+        backend = """from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Generated API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    return {"message": "API is running"}
+
+@app.get("/api/data")
+async def get_data():
+    return {"data": "Sample data"}"""
+        
         return {
             "html_content": html,
-            "css_content": self._extract_embedded_css(html),
-            "js_content": self._extract_embedded_js(html),
+            "css_content": css,
+            "js_content": js,
+            "python_backend": backend,
+            "requirements_txt": "fastapi==0.104.1\\nuvicorn==0.24.0",
+            "package_json": self._generate_package_json(prompt),
+            "readme": f"# Generated Project\\n\\n{prompt}",
+            "files": [],
             "structure": {}
         }
+
+    def _extract_code_block(self, text: str, language: str) -> Optional[str]:
+        """Extract code from markdown code blocks"""
+        try:
+            marker = f"```{language}"
+            if marker in text:
+                parts = text.split(marker)
+                if len(parts) > 1:
+                    code = parts[1].split("```")[0].strip()
+                    return code
+            return None
+        except:
+            return None
+
+    def _extract_html_direct(self, text: str) -> str:
+        """Extract HTML directly from response"""
+        try:
+            start = text.find("<!DOCTYPE")
+            if start == -1:
+                start = text.find("<html")
+            
+            if start != -1:
+                end = text.rfind("</html>")
+                if end != -1:
+                    return text[start:end + 7].strip()
+        except:
+            pass
+        return ""
 
     async def generate_image(self, prompt: str) -> str:
         """Generate image using Gemini Imagen"""
