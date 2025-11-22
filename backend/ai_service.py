@@ -332,48 +332,138 @@ REMEMBER: Every pixel matters. Make it BEAUTIFUL, not just functional."""
         )
         chat.with_model(provider, model)
         
-        full_prompt = f"""Create a professional, modern frontend for:
+        full_prompt = f"""🎨 CREATE A VISUALLY STUNNING, AWARD-WORTHY WEBSITE 🎨
 
+PROJECT BRIEF:
 {prompt}
 
-Generate THREE separate files:
+═══════════════════════════════════════════════════════════════
 
-1. **index.html** - Complete HTML structure with:
-   - Semantic HTML5 tags
-   - Proper meta tags and SEO
-   - Link to styles.css
-   - Script tag for app.js at the end
-   
-2. **styles.css** - Modern CSS with:
-   - CSS custom properties (variables)
-   - Flexbox/Grid layouts
-   - Responsive breakpoints (@media queries)
-   - Smooth animations and transitions
-   - Professional color scheme
-   - Modern typography
-   
-3. **app.js** - JavaScript with:
-   - DOM manipulation
-   - Event listeners
-   - Form validation (if forms exist)
-   - API calls (fetch)
-   - Smooth interactions
-   - Modern ES6+ syntax
+YOUR MISSION: Create a website so beautiful it could win design awards.
 
-Make it look PROFESSIONAL and MODERN. Think of popular websites like Stripe, Linear, or Vercel.
+DESIGN INSPIRATION LEVEL: Think Stripe.com, Linear.app, Apple.com, Awwwards winners
 
-Format your response with three code blocks:
+═══════════════════════════════════════════════════════════════
+
+🎨 VISUAL DESIGN REQUIREMENTS:
+
+COLOR SCHEME:
+- Choose a sophisticated, modern color palette
+- Use rich gradients (minimum 3-color stops)
+- Implement gradient text for headings
+- Add colored shadows to match your palette
+- Example palette: Primary #6366f1, Accent #8b5cf6, Background gradient from #667eea to #764ba2
+
+SPACING & LAYOUT:
+- GENEROUS white space everywhere (2-3x more than typical)
+- Hero section: 100vh height, perfectly centered
+- Section padding: 120px vertical minimum
+- Component gaps: 60px between major elements
+- Modern asymmetric grid layouts
+
+TYPOGRAPHY:
+- Import beautiful Google Fonts (e.g., Inter, Space Grotesk, Outfit)
+- Hero heading: 4-6rem (massive, bold, attention-grabbing)
+- Perfect line-height: 1.6-1.8
+- Letter-spacing: -0.02em for large headings
+- Smooth font rendering: -webkit-font-smoothing: antialiased
+
+VISUAL EFFECTS:
+- Glassmorphism: backdrop-filter: blur(12px)
+- Layered shadows: multiple box-shadow values
+- Smooth hover animations: transform: translateY(-4px) scale(1.02)
+- Gradient hover effects
+- Fade-in scroll animations
+- Parallax effects where appropriate
+
+COMPONENT DESIGN:
+- Buttons: Pill-shaped, large padding (20px 50px), gradient or solid with glow
+- Cards: 20px border-radius, subtle hover lift, internal padding 40px
+- Navigation: Sticky with backdrop blur, smooth scroll
+- Inputs: Large, rounded, focus glow effects
+
+═══════════════════════════════════════════════════════════════
+
+📋 GENERATE THREE SEPARATE FILES:
+
+1. **index.html**
+   ├─ Semantic HTML5 structure
+   ├─ Comprehensive meta tags
+   ├─ <link rel="stylesheet" href="styles.css">
+   ├─ Multiple sections with proper hierarchy
+   ├─ Real, engaging content (not Lorem Ipsum)
+   └─ <script src="app.js"></script> before </body>
+
+2. **styles.css** (MINIMUM 500 LINES - GO DEEP!)
+   ├─ :root with CSS custom properties
+   ├─ @import for Google Fonts
+   ├─ Reset/normalize styles
+   ├─ Body with gradient background
+   ├─ Detailed component styles
+   ├─ Hover/focus/active states for EVERYTHING
+   ├─ Smooth animations with cubic-bezier easing
+   ├─ Responsive breakpoints: 640px, 768px, 1024px, 1280px
+   ├─ Glassmorphism effects
+   ├─ Gradient overlays
+   └─ Advanced effects (clip-path, blend-modes)
+
+3. **app.js**
+   ├─ DOMContentLoaded listener
+   ├─ Smooth scroll behavior
+   ├─ Interactive animations
+   ├─ Form handling (if applicable)
+   ├─ Scroll reveal animations
+   ├─ Dynamic effects
+   └─ API integration ready
+
+═══════════════════════════════════════════════════════════════
+
+🎯 QUALITY CHECKLIST:
+✓ Looks expensive and premium
+✓ Makes users say "wow"
+✓ Professional color harmony
+✓ Perfect spacing rhythm
+✓ Smooth, delightful interactions
+✓ Responsive on all devices
+✓ Accessible and semantic
+✓ Performance optimized
+
+═══════════════════════════════════════════════════════════════
+
+OUTPUT FORMAT:
 ```html
-[HTML CODE]
+<!DOCTYPE html>
+<html lang="en">
+...complete, beautiful HTML...
+</html>
 ```
 
 ```css
-[CSS CODE]
+@import url('https://fonts.googleapis.com/css2?family=...');
+
+:root {{
+  --primary: #6366f1;
+  --secondary: #8b5cf6;
+  /* more variables */
+}}
+
+/* Reset */
+* {{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}}
+
+/* ... 500+ lines of gorgeous CSS ... */
 ```
 
 ```javascript
-[JS CODE]
-```"""
+document.addEventListener('DOMContentLoaded', () => {{
+  // Beautiful, smooth interactions
+}});
+```
+
+NOW CREATE SOMETHING EXCEPTIONAL! 🚀"""
         
         user_message = UserMessage(text=full_prompt)
         response = await chat.send_message(user_message)
