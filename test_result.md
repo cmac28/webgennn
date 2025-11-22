@@ -128,6 +128,12 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ BUDGET ISSUE RESOLVED - NEW API KEY WORKING! Comprehensive testing completed with new Emergent LLM key (sk-emergent-a5cFe97DfDa9871F4E). RESULTS: 1) Recipe Blog Test: Generated unique 14,094 char HTML with title 'Delicious Recipes - Food Blog' in 125.08s, 2) Portfolio Test: Generated unique 13,579 char HTML with title 'Alex Morgan - Web Developer Portfolio' in 122.56s, 3) Tech Startup Test: Generated 14,456 char HTML in 119.06s. ALL VALIDATION CRITERIA MET: ✅ No budget exceeded errors, ✅ Generation time >5s (119-125s indicating real AI processing), ✅ HTML content is UNIQUE between different prompts (different titles, lengths, content), ✅ HTML length >2000 chars (13,579-14,456), ✅ Contains embedded <style> tags, ✅ Backend logs show '✅ Generation successful - using AI-generated code'. The repetitive layouts issue is completely resolved - different prompts now produce genuinely unique websites with appropriate content matching the request."
+      - working: "false"
+        agent: "testing"
+        comment: "BUDGET ISSUE DISCOVERED - AI service budget exceeded ($11.10 vs $9.00 limit). All generation requests failing and using static VideoTube fallback template. All three test prompts produced identical 15907-char templates."
+      - working: true
+        agent: "main"
+        comment: "ISSUE RESOLVED - Updated Emergent LLM key to sk-emergent-a5cFe97DfDa9871F4E. Backend restarted successfully. Testing confirms: 1) No budget errors, 2) Generation times 119-125s (real AI processing), 3) Unique HTML for different prompts (13,579-14,456 chars), 4) Different titles and content per prompt, 5) Backend logs show '✅ Generation successful - using AI-generated code'. System fully operational."
 
 metadata:
   created_by: "main_agent"
