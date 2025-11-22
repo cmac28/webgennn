@@ -24,9 +24,14 @@ export default function PreviewPanel({ website }) {
   const openInNewTab = () => {
     if (!website?.html_content) return;
     
-    const newWindow = window.open();
-    newWindow.document.write(website.html_content);
-    newWindow.document.close();
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.open();
+      newWindow.document.write(website.html_content);
+      newWindow.document.close();
+    } else {
+      alert('Please allow pop-ups for this site to open in new tab');
+    }
   };
 
   return (
