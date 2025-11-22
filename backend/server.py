@@ -38,6 +38,9 @@ ai_service = AIService(
     api_key=os.getenv('EMERGENT_LLM_KEY')
 )
 
+# Initialize project manager
+project_manager = ProjectManager()
+
 # Create the main app
 app = FastAPI(title="Code Weaver API")
 api_router = APIRouter(prefix="/api")
