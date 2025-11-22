@@ -499,10 +499,67 @@ MAKE IT LOOK AND FUNCTION LIKE THE REAL THING!"""
             html = re.sub(r'<link[^>]*href=["\']styles\.css["\'][^>]*>', '', html)
             html = re.sub(r'<script[^>]*src=["\']app\.js["\'][^>]*></script>', '', html)
         
-        # Validate quality
+        # Validate quality - retry generation if needed, don't use fallback
         if len(html) < 500 or "<style>" not in html:
-            logger.warning(f"HTML invalid or too short ({len(html)} chars), using high-quality fallback")
-            return await self._generate_fallback_frontend(prompt, analysis)
+            logger.warning(f"HTML invalid or too short ({len(html)} chars), retrying generation...")
+            
+            # Retry with more explicit instructions
+            retry_prompt = f"""GENERATE COMPLETE, SELF-CONTAINED HTML FOR:
+
+{prompt}
+
+REQUIREMENTS:
+1. MUST be a complete HTML document starting with <!DOCTYPE html>
+2. MUST include embedded <style> tags in <head> with AT LEAST 500 lines of CSS
+3. MUST include embedded <script> tags before </body> with working JavaScript
+4. MUST match the request exactly (if they ask for YouTube, make a video platform)
+5. Use Font Awesome icons: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+Generate ONLY the complete HTML code in a ```html code block."""
+
+            retry_chat = LlmChat(
+                api_key=self.api_key,
+                session_id=f"{session_id}_retry",
+                system_message="You are a professional web developer. Generate complete, working HTML with embedded CSS and JavaScript."
+            )
+            retry_chat.with_model(provider, model)
+            
+            retry_response = await retry_chat.send_message(UserMessage(text=retry_prompt))
+            
+            # Extract again
+            html = self._extract_code_block(retry_response, "html") or self._extract_html_direct(retry_response)
+            
+            # If still invalid, extract CSS/JS and embed
+            if html and "<style>" not in html and css:
+                if "</head>" in html:
+                    html = html.replace("</head>", f"<style>\n{css}\n</style>\n</head>")
+            
+            if html and "<script>" not in html and js:
+                if "</body>" in html:
+                    html = html.replace("</body>", f"<script>\n{js}\n</script>\n</body>")
+        
+        # Final validation - if STILL no good HTML, generate a basic structure
+        if not html or len(html) < 300:
+            logger.error("Generation failed completely, creating minimal structure")
+            html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Website</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {css if css else "body {{ font-family: Arial; padding: 40px; }}"}
+    </style>
+</head>
+<body>
+    <h1>Website for: {prompt}</h1>
+    <p>Generation in progress...</p>
+    <script>
+        {js if js else "console.log('Website loaded');"}
+    </script>
+</body>
+</html>"""
         
         if len(css) < 300:
             logger.warning(f"CSS too short ({len(css)} chars), enhancing")
