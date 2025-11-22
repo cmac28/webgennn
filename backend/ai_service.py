@@ -246,6 +246,12 @@ Return ONLY the JSON analysis object."""
     async def _generate_contextual_frontend(self, prompt: str, analysis: Dict, provider: str, model: str, session_id: str) -> Dict[str, str]:
         """Generate frontend based on context analysis - ALWAYS generates unique code"""
         
+        logger.info("=" * 80)
+        logger.info(f"FRONTEND GENERATION START")
+        logger.info(f"User Prompt: {prompt}")
+        logger.info(f"Analysis: {analysis}")
+        logger.info("=" * 80)
+        
         # Build context-specific instructions
         reference_examples = self._get_reference_examples(analysis.get('reference_site', 'custom'))
         component_templates = self._get_component_templates(analysis.get('key_components', []))
