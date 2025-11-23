@@ -163,7 +163,7 @@ class NetlifyDeploymentTester:
                             "status_code": response.status,
                             "content_length": len(content),
                             "has_html": has_html,
-                            "has_coffee_content": has_coffee_content,
+                            "has_renovation_content": has_renovation_content,
                             "content_preview": content[:500] + "..." if len(content) > 500 else content
                         }
                         
