@@ -324,12 +324,15 @@ REMEMBER: Beautiful design is great, but COMPLETENESS is mandatory. Every featur
         edit_requirements = self._extract_requirements(prompt)
         logger.info(f"📝 Edit requirements: {edit_requirements}")
         
+        edit_requirements_json = json.dumps(edit_requirements, indent=2)
+        edit_checklist = self._generate_requirement_checklist(edit_requirements)
+        
         system_prompt = f"""You are an expert full-stack developer editing a Netlify-deployed project.
 
 🔄 EDITING MODE - PRESERVE EXISTING STRUCTURE + ADD NEW REQUIREMENTS
 
 USER WANTS TO MAKE THESE CHANGES:
-{json.dumps(edit_requirements, indent=2)}
+{edit_requirements_json}
 
 CRITICAL RULES:
 1. You are EDITING existing code, NOT creating from scratch
@@ -341,7 +344,7 @@ CRITICAL RULES:
 7. Return the COMPLETE project with modifications
 
 ⚠️ VERIFICATION CHECKLIST FOR EDITS:
-{self._generate_requirement_checklist(edit_requirements)}
+{edit_checklist}
 
 EVERY item above MUST be present in your edited code. Check before submitting.
 
