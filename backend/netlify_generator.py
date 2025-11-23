@@ -559,46 +559,41 @@ Respond with JSON:
             # Strip any leading/trailing whitespace
             response = response.strip()
             
-            # Check if response starts with JSON directly
+            # SMART APPROACH: Try multiple parsing strategies
+            
+            # Strategy 1: Try standard JSON parsing
             if response.startswith('{'):
                 logger.info("✅ Response starts with JSON object")
-                json_str = response
                 
-                # Try parsing the entire response as JSON first
                 try:
-                    project_data = json.loads(json_str)
+                    project_data = json.loads(response)
                     
-                    # Validate structure
                     if "files" in project_data and isinstance(project_data["files"], dict):
-                        logger.info(f"✅ Valid project structure with {len(project_data['files'])} files")
-                        
-                        # Decode base64 encoded files
-                        decoded_files = {}
-                        for filepath, content in project_data["files"].items():
-                            if isinstance(content, str):
-                                # Try to decode from base64
-                                try:
-                                    import base64
-                                    decoded_content = base64.b64decode(content).decode('utf-8')
-                                    decoded_files[filepath] = decoded_content
-                                    logger.info(f"✅ Decoded {filepath} from base64")
-                                except Exception:
-                                    # If not base64, use as-is (fallback for plain text)
-                                    decoded_files[filepath] = content
-                                    logger.warning(f"⚠️ {filepath} not base64 encoded, using as-is")
-                            else:
-                                decoded_files[filepath] = content
-                        
-                        project_data["files"] = decoded_files
-                        return project_data
-                    else:
-                        logger.warning("JSON parsed but missing 'files' key or invalid structure")
-                        logger.info(f"Keys found: {list(project_data.keys())}")
+                        logger.info(f"✅ Standard JSON parse successful: {len(project_data['files'])} files")
+                        return self._process_files(project_data)
                 except json.JSONDecodeError as e:
-                    logger.error(f"JSON parse error on full response: {str(e)}")
-                    logger.error(f"Error at position {e.pos}")
-                    # Try to find valid JSON substring
-                    pass
+                    logger.warning(f"Standard JSON parse failed: {str(e)}")
+                    logger.info("Trying alternative extraction methods...")
+            
+            # Strategy 2: Extract using regex for file blocks
+            logger.info("Attempting regex-based file extraction...")
+            files = self._extract_files_with_regex(response)
+            
+            if files:
+                logger.info(f"✅ Regex extraction successful: {len(files)} files")
+                return {
+                    "files": files,
+                    "deploy_config": {
+                        "build_command": "",
+                        "publish_dir": ".",
+                        "functions_dir": "netlify/functions",
+                        "environment_variables": {}
+                    }
+                }
+            
+            # Strategy 3: Try the old text extraction
+            logger.info("Attempting text-based extraction...")
+            return self._extract_files_from_text(response)
             
             # Fallback: Try to find JSON block within response
             json_start = response.find('{"files"')
