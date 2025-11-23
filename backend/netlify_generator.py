@@ -680,11 +680,12 @@ Respond with JSON:
             
             # SMART APPROACH: Try multiple parsing strategies
             
-            # Strategy 1: Try standard JSON parsing
+            # Strategy 1: Try standard JSON parsing with increased limits
             if response.startswith('{'):
                 logger.info("✅ Response starts with JSON object")
                 
                 try:
+                    # Try direct JSON parsing first
                     project_data = json.loads(response)
                     
                     if "files" in project_data and isinstance(project_data["files"], dict):
@@ -692,6 +693,58 @@ Respond with JSON:
                         return self._process_files(project_data)
                 except json.JSONDecodeError as e:
                     logger.warning(f"Standard JSON parse failed: {str(e)}")
+                    
+                    # Try manual extraction of files object
+                    try:
+                        logger.info("Attempting manual JSON files extraction...")
+                        files_match = re.search(r'"files"\s*:\s*\{', response)
+                        if files_match:
+                            # Find the start of the files object
+                            files_start = files_match.end() - 1
+                            
+                            # Manually extract each file using quotes
+                            extracted_files = {}
+                            
+                            # Find all file entries
+                            file_patterns = [
+                                (r'"index\.html"\s*:\s*"', 'index.html'),
+                                (r'"styles\.css"\s*:\s*"', 'styles.css'),
+                                (r'"app\.js"\s*:\s*"', 'app.js'),
+                                (r'"script\.js"\s*:\s*"', 'script.js'),
+                                (r'"netlify\.toml"\s*:\s*"', 'netlify.toml'),
+                            ]
+                            
+                            for pattern, filename in file_patterns:
+                                match = re.search(pattern, response, re.IGNORECASE)
+                                if match:
+                                    content_start = match.end()
+                                    closing_pos = self._find_closing_quote(response, content_start)
+                                    
+                                    if closing_pos > content_start:
+                                        content = response[content_start:closing_pos]
+                                        # Unescape
+                                        content = content.replace('\\n', '\n')
+                                        content = content.replace('\\"', '"')
+                                        content = content.replace('\\\\', '\\')
+                                        content = content.replace('\\/', '/')
+                                        
+                                        if len(content) > 50:
+                                            extracted_files[filename] = content
+                                            logger.info(f"✅ Manually extracted {filename} ({len(content)} chars)")
+                            
+                            if extracted_files:
+                                logger.info(f"✅ Manual JSON extraction successful: {len(extracted_files)} files")
+                                return {
+                                    "files": extracted_files,
+                                    "deploy_config": {
+                                        "build_command": "",
+                                        "publish_dir": ".",
+                                        "functions_dir": "netlify/functions"
+                                    }
+                                }
+                    except Exception as manual_e:
+                        logger.warning(f"Manual extraction also failed: {str(manual_e)}")
+                    
                     logger.info("Trying alternative extraction methods...")
             
             # Strategy 2: Extract using regex for file blocks
