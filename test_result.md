@@ -282,8 +282,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Netlify Generator - Restore Beautiful Design Quality"
-  stuck_tasks: []
+    - "Netlify Auto-Deployment Integration"
+  stuck_tasks:
+    - "Netlify Auto-Deployment Integration"
   test_all: false
   test_priority: "high_first"
 
