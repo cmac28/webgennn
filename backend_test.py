@@ -455,13 +455,18 @@ class NetlifyDeploymentTester:
             for error in validation_errors:
                 logger.error(f"❌ {error}")
         else:
-            logger.info("\n✅ All validation criteria passed!")
+            logger.info("\n✅ All validation criteria passed - MAX TOKENS FIX VERIFIED!")
             logger.info("   - Session created successfully")
-            logger.info("   - Website generated and deployed to Netlify")
-            logger.info("   - Response contains all required fields")
-            logger.info("   - Deploy preview URL is valid Netlify URL")
-            logger.info("   - Live URL is accessible and contains expected content")
-            logger.info("   - Backend logs show deployment success")
+            logger.info("   - Website generated WITHOUT errors (no 'encountered an error' message)")
+            logger.info("   - Response contains project.files with index.html, styles.css, app.js")
+            logger.info("   - Files are COMPLETE (not truncated mid-sentence)")
+            logger.info("   - HTML file is substantial (>5000 chars minimum)")
+            logger.info("   - CSS file is substantial (>2000 chars minimum)")
+            logger.info("   - deployment.deploy_preview_url is returned")
+            logger.info("   - Live URL is accessible and contains complete content")
+            logger.info("   - AI response was complete (>20,000 chars ideally)")
+            logger.info("   - No truncation errors in logs")
+            logger.info("   - No 'PARSING COMPLETELY FAILED' errors")
         
         return {
             "success": success,
