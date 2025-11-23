@@ -374,6 +374,36 @@ Respond with JSON:
             logger.error(f"JSON parse error: {str(e)}")
             return {}
     
+    def _extract_files_from_text(self, response: str) -> Dict[str, Any]:
+        """
+        Extract files from text response when JSON parsing fails
+        Looks for code blocks and file markers
+        """
+        files = {}
+        
+        # Try to find file markers like "index.html:", "styles.css:", etc.
+        file_pattern = r'([a-zA-Z0-9_\-/\.]+\.(html|css|js|toml|json|md)):\s*```([a-z]*)\n(.*?)```'
+        matches = re.finditer(file_pattern, response, re.DOTALL | re.IGNORECASE)
+        
+        for match in matches:
+            filename = match.group(1)
+            content = match.group(4).strip()
+            files[filename] = content
+            logger.info(f"Extracted file: {filename} ({len(content)} chars)")
+        
+        if files:
+            return {
+                "files": files,
+                "deploy_config": {
+                    "build_command": "",
+                    "publish_dir": ".",
+                    "functions_dir": "netlify/functions",
+                    "environment_variables": {}
+                }
+            }
+        
+        return {}
+    
     def _validate_netlify_project(self, project: Dict[str, Any]) -> bool:
         """Validate that project meets Netlify requirements"""
         files = project.get("files", {})
