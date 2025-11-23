@@ -638,6 +638,45 @@ async def download_netlify_project(project_id: str):
         "size": len(zip_data)
     }
 
+@api_router.get("/netlify/deploy/{deploy_id}/status")
+async def get_deploy_status(deploy_id: str):
+    """Get real-time build status for a deployment"""
+    try:
+        status = await netlify_deploy_service.get_deploy_status(deploy_id)
+        return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/netlify/site/{site_id}")
+async def get_site_info(site_id: str):
+    """Get information about a deployed Netlify site"""
+    try:
+        info = await netlify_deploy_service.get_site_info(site_id)
+        return info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/netlify/sites")
+async def list_netlify_sites(limit: int = 10):
+    """List all Netlify sites in the account"""
+    try:
+        sites = await netlify_deploy_service.list_sites(limit=limit)
+        return {"sites": sites}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/netlify/site/{site_id}")
+async def delete_netlify_site(site_id: str):
+    """Delete a Netlify site"""
+    try:
+        success = await netlify_deploy_service.delete_site(site_id)
+        if success:
+            return {"success": True, "message": "Site deleted successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete site")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============================================================================
 # PREVIEW ENDPOINTS - Serve generated projects as proper websites
 # ============================================================================
