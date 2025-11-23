@@ -294,16 +294,15 @@ IMPORTANT RULES:
 Go through the verification checklist above and confirm EVERY item is present in your code.
 If ANY item is missing (especially design elements), ADD IT NOW before responding.
 
-🚨 OUTPUT FORMAT - EXTREMELY IMPORTANT:
-Respond with ONLY valid JSON. NO explanations before or after.
+🚨 OUTPUT FORMAT - CRITICAL:
 
-Structure:
+YOU MUST OUTPUT THREE SEPARATE FILES IN JSON FORMAT:
+
 {
   "files": {
-    "index.html": "your complete HTML with EMBEDDED <style> and <script> tags",
-    "styles.css": "OPTIONAL: duplicate of the embedded CSS",
-    "app.js": "OPTIONAL: duplicate of the embedded JavaScript",
-    "netlify.toml": "[build]\\n  publish = \\".\\""
+    "index.html": "Complete HTML that links to styles.css and app.js",
+    "styles.css": "ALL CSS code for beautiful styling",
+    "app.js": "ALL JavaScript code for interactivity"
   },
   "deploy_config": {
     "build_command": "",
@@ -312,52 +311,41 @@ Structure:
   }
 }
 
-🚨 CRITICAL FILE STRUCTURE FOR NETLIFY:
-Your HTML MUST have ALL styles and scripts EMBEDDED inside it:
-
+HTML STRUCTURE (index.html):
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page Title</title>
-    <!-- CDN links -->
+    
+    <!-- CDN Links - Required -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
-    <!-- EMBEDDED STYLES - MANDATORY -->
-    <style>
-        /* ALL your CSS code here */
-        body { margin: 0; }
-        /* ... all styles ... */
-    </style>
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- HTML content -->
+    <!-- Your HTML content here -->
     
-    <!-- EMBEDDED JAVASCRIPT - MANDATORY -->
-    <script>
-        // ALL your JavaScript code here
-        console.log('App loaded');
-        // ... all JavaScript ...
-    </script>
+    <!-- Link to your JS file before closing body tag -->
+    <script src="app.js"></script>
 </body>
 </html>
 ```
 
-DO NOT reference external files like:
-❌ <link rel="stylesheet" href="styles.css">
-❌ <link rel="stylesheet" href="static/styles.css">
-❌ <script src="app.js"></script>
+STYLES.CSS: Put ALL your custom CSS here (minimum 300 lines for a professional website)
+APP.JS: Put ALL your JavaScript here (interactivity, animations, event handlers)
 
-The system will extract embedded styles/scripts into separate files automatically.
+ESCAPING RULES FOR JSON:
+- Escape " as \\"
+- Escape newlines as \\n
+- Escape backslashes as \\\\
 
-ESCAPING RULES:
-- Replace " with \\"
-- Replace newline with \\n
-- Replace \\ with \\\\
-
-The system has robust parsing and can extract files even from imperfect JSON.
-Focus on generating COMPLETE, BEAUTIFUL code with ALL user requirements and EMBEDDED styles/scripts.
+FOCUS: Generate COMPLETE, BEAUTIFUL code with ALL user requirements across these 3 files.
 
 ═══════════════════════════════════════════════════════════════
 🚨 REQUIREMENT COMPLETION CHECKLIST - MANDATORY
