@@ -412,6 +412,185 @@ Respond with JSON:
             logger.error(f"JSON parse error: {str(e)}")
             return {}
     
+    def _extract_requirements(self, prompt: str) -> Dict[str, List[str]]:
+        """
+        Extract explicit requirements from user prompt
+        Returns categorized list of what user asked for
+        """
+        requirements = {
+            "sections": [],
+            "features": [],
+            "elements": [],
+            "styling": [],
+            "content": [],
+            "functionality": []
+        }
+        
+        prompt_lower = prompt.lower()
+        
+        # Common section keywords
+        section_keywords = [
+            "hero", "header", "footer", "navbar", "navigation", "menu",
+            "about", "features", "pricing", "testimonials", "gallery",
+            "contact", "form", "blog", "portfolio", "services", "team",
+            "faq", "banner", "sidebar", "carousel", "slider"
+        ]
+        
+        # Feature keywords
+        feature_keywords = [
+            "search", "filter", "authentication", "login", "signup",
+            "cart", "checkout", "payment", "subscribe", "newsletter",
+            "social", "share", "comment", "rating", "review"
+        ]
+        
+        # Element keywords
+        element_keywords = [
+            "button", "link", "image", "video", "icon", "card",
+            "modal", "popup", "dropdown", "tooltip", "badge",
+            "alert", "notification", "progress", "spinner"
+        ]
+        
+        # Extract sections
+        for keyword in section_keywords:
+            if keyword in prompt_lower:
+                requirements["sections"].append(keyword)
+        
+        # Extract features
+        for keyword in feature_keywords:
+            if keyword in prompt_lower:
+                requirements["features"].append(keyword)
+        
+        # Extract elements
+        for keyword in element_keywords:
+            if keyword in prompt_lower:
+                requirements["elements"].append(keyword)
+        
+        # Look for numbered lists or bullet points
+        import re
+        
+        # Find numbered requirements (1. 2. 3.)
+        numbered = re.findall(r'\d+\.\s*([^\n]+)', prompt)
+        if numbered:
+            requirements["content"].extend(numbered)
+        
+        # Find bullet points (- or *)
+        bullets = re.findall(r'[-*]\s*([^\n]+)', prompt)
+        if bullets:
+            requirements["content"].extend(bullets)
+        
+        # Extract specific counts (e.g., "3 cards", "5 testimonials")
+        counts = re.findall(r'(\d+)\s+([a-zA-Z]+)', prompt)
+        for count, item in counts:
+            requirements["content"].append(f"{count} {item}")
+        
+        # Extract quoted text (specific content requested)
+        quoted = re.findall(r'["\']([^"\']+)["\']', prompt)
+        if quoted:
+            requirements["content"].extend(quoted)
+        
+        # If no specific requirements found, parse the whole prompt
+        if not any(requirements.values()):
+            # Split by common separators
+            parts = re.split(r'[,;]|\s+with\s+|\s+and\s+|\s+including\s+', prompt)
+            requirements["content"] = [p.strip() for p in parts if len(p.strip()) > 3]
+        
+        return requirements
+    
+    def _generate_requirement_checklist(self, requirements: Dict[str, List[str]]) -> str:
+        """Generate a checklist string from requirements"""
+        checklist = []
+        
+        if requirements["sections"]:
+            checklist.append("SECTIONS TO INCLUDE:")
+            for section in requirements["sections"]:
+                checklist.append(f"  ☐ {section.title()} section")
+        
+        if requirements["features"]:
+            checklist.append("\nFEATURES TO IMPLEMENT:")
+            for feature in requirements["features"]:
+                checklist.append(f"  ☐ {feature.title()} functionality")
+        
+        if requirements["elements"]:
+            checklist.append("\nELEMENTS TO ADD:")
+            for element in requirements["elements"]:
+                checklist.append(f"  ☐ {element.title()} elements")
+        
+        if requirements["content"]:
+            checklist.append("\nSPECIFIC CONTENT REQUESTED:")
+            for content in requirements["content"]:
+                checklist.append(f"  ☐ {content}")
+        
+        if not checklist:
+            checklist.append("☐ Implement all features described in the prompt")
+        
+        return "\n".join(checklist)
+    
+    def _validate_requirements(self, generated_html: str, requirements: Dict[str, List[str]]) -> Dict[str, Any]:
+        """
+        Validate that generated HTML contains all requested requirements
+        Returns validation report
+        """
+        html_lower = generated_html.lower()
+        
+        validation_report = {
+            "all_requirements_met": True,
+            "missing_requirements": [],
+            "found_requirements": [],
+            "completeness_score": 0.0
+        }
+        
+        total_requirements = 0
+        found_requirements = 0
+        
+        # Check sections
+        for section in requirements.get("sections", []):
+            total_requirements += 1
+            # Look for section in HTML (as class, id, or text)
+            if section.lower() in html_lower:
+                found_requirements += 1
+                validation_report["found_requirements"].append(f"Section: {section}")
+            else:
+                validation_report["missing_requirements"].append(f"Section: {section}")
+        
+        # Check features
+        for feature in requirements.get("features", []):
+            total_requirements += 1
+            if feature.lower() in html_lower:
+                found_requirements += 1
+                validation_report["found_requirements"].append(f"Feature: {feature}")
+            else:
+                validation_report["missing_requirements"].append(f"Feature: {feature}")
+        
+        # Check elements
+        for element in requirements.get("elements", []):
+            total_requirements += 1
+            if element.lower() in html_lower:
+                found_requirements += 1
+                validation_report["found_requirements"].append(f"Element: {element}")
+            else:
+                validation_report["missing_requirements"].append(f"Element: {element}")
+        
+        # Check specific content
+        for content in requirements.get("content", []):
+            total_requirements += 1
+            # More lenient check for content - look for key words
+            content_words = content.lower().split()
+            if any(word in html_lower for word in content_words if len(word) > 3):
+                found_requirements += 1
+                validation_report["found_requirements"].append(f"Content: {content}")
+            else:
+                validation_report["missing_requirements"].append(f"Content: {content}")
+        
+        # Calculate completeness
+        if total_requirements > 0:
+            validation_report["completeness_score"] = (found_requirements / total_requirements) * 100
+        else:
+            validation_report["completeness_score"] = 100.0
+        
+        validation_report["all_requirements_met"] = len(validation_report["missing_requirements"]) == 0
+        
+        return validation_report
+    
     def _extract_files_from_text(self, response: str) -> Dict[str, Any]:
         """
         Extract files from text response when JSON parsing fails
