@@ -644,6 +644,9 @@ Respond with JSON:
             )
             chat.with_model(provider, model)
             
+            # Set max_tokens to allow complete responses
+            chat.with_params(max_tokens=16000)
+            
             response = await chat.send_message(UserMessage(text=analysis_prompt))
             
             # Extract JSON from response
