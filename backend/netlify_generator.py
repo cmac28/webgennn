@@ -184,7 +184,7 @@ KEY POINTS:
         
         user_prompt = f"""Generate a complete Netlify-deployable project for:
 
-{prompt}
+"{prompt}"
 
 PROJECT SPECIFICATIONS:
 - Type: {analysis.get('project_type', 'web app')}
@@ -192,6 +192,15 @@ PROJECT SPECIFICATIONS:
 - Backend Required: {needs_backend}
 - Database Required: {needs_database}
 - Features: {', '.join(analysis.get('features', []))}
+
+🚨 CRITICAL COMPLETENESS REQUIREMENTS:
+You MUST include EVERY item mentioned in the prompt above. Read it carefully:
+
+USER REQUESTED THESE SPECIFIC ITEMS:
+{json.dumps(requirements, indent=2)}
+
+VERIFICATION CHECKLIST (Complete ALL items):
+{self._generate_requirement_checklist(requirements)}
 
 GENERATE:
 1. Frontend files (HTML/CSS/JS or React)
@@ -207,6 +216,10 @@ IMPORTANT RULES:
 - Make it production-ready and beautiful
 - Use modern design patterns (gradients, shadows, animations)
 - Ensure mobile responsiveness
+
+⚠️ BEFORE SUBMITTING YOUR CODE:
+Go through the verification checklist above and confirm EVERY item is present in your HTML.
+If ANY item is missing, ADD IT NOW before responding.
 
 OUTPUT AS JSON with structure shown above.
 
