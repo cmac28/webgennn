@@ -76,7 +76,9 @@ class NetlifyGenerator:
         
         # Generate the system prompt for Netlify-compatible code with requirement completion
         requirements_json = json.dumps(requirements, indent=2)
-        system_prompt = f"""You are an expert full-stack developer specializing in Netlify deployments.
+        checklist_text = self._generate_requirement_checklist(requirements)
+        
+        system_prompt = """You are an expert full-stack developer specializing in Netlify deployments.
 
 🎯 MISSION: Generate production-ready, Netlify-compatible code that deploys instantly with Deploy Preview URLs.
 
