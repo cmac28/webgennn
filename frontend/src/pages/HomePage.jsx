@@ -256,12 +256,30 @@ export default function HomePage() {
       setGenerationSteps(prev => prev.map(step => ({ ...step, status: 'complete' })));
 
       // Extract website data from Netlify response
+      const project = response.data.project || {};
+      const files = project.files || {};
+      
       const websiteData = {
-        ...response.data.project,
-        netlify_deploy_url: response.data.deploy_preview_url || response.data.instant_url,
+        project_id: project.project_id,
+        session_id: project.session_id,
+        files: files,
+        html_content: files['index.html'] || '',
+        css_content: files['styles.css'] || '',
+        js_content: files['app.js'] || files['script.js'] || '',
+        python_content: files['main.py'] || '',
+        netlify_deploy_url: response.data.deploy_preview_url || response.data.instant_url || response.data.deployment?.deploy_url,
         netlify_site_id: response.data.deployment?.site_id,
-        netlify_deployed: response.data.deployment?.success
+        netlify_deployed: response.data.deployment?.success,
+        created_at: project.created_at
       };
+      
+      console.log('Website data extracted:', {
+        hasHTML: !!websiteData.html_content,
+        hasCSS: !!websiteData.css_content,
+        hasJS: !!websiteData.js_content,
+        deployUrl: websiteData.netlify_deploy_url,
+        fileCount: Object.keys(files).length
+      });
       
       setGeneratedWebsite(websiteData);
       
