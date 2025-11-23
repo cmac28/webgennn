@@ -245,16 +245,26 @@ REMEMBER: Beautiful design is great, but COMPLETENESS is mandatory. Every featur
             project_data = self._parse_project_response(response)
             
             if not project_data.get("files"):
-                logger.warning("No files parsed from AI response, attempting alternative parsing...")
-                # Try to extract files from response even if not perfect JSON
+                logger.error("❌ CRITICAL: No files parsed from AI response")
+                logger.error(f"❌ Response length: {len(response)}")
+                logger.error(f"❌ Response starts: {response[:1000]}")
+                
+                # Try alternative text extraction as last resort
+                logger.warning("Attempting alternative text extraction...")
                 project_data = self._extract_files_from_text(response)
                 
                 if not project_data.get("files"):
-                    logger.error("❌ Could not extract any files from AI response")
-                    logger.error("Falling back to template project")
-                    project_data = self._generate_fallback_project(prompt, analysis)
+                    logger.error("❌ PARSING COMPLETELY FAILED")
+                    logger.error("This should NOT happen - AI should return valid JSON")
+                    
+                    # Save the failed response for debugging
+                    with open("/tmp/failed_ai_response.txt", "w") as f:
+                        f.write(response)
+                    logger.error("Failed response saved to /tmp/failed_ai_response.txt")
+                    
+                    raise Exception("AI response parsing failed - check logs and /tmp/failed_ai_response.txt")
                 else:
-                    logger.info(f"✅ Extracted {len(project_data['files'])} files from text response")
+                    logger.warning(f"⚠️ Extracted {len(project_data['files'])} files from text (not JSON)")
             else:
                 logger.info(f"✅ Successfully parsed {len(project_data['files'])} files from JSON response")
             
