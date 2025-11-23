@@ -119,10 +119,33 @@ CRITICAL NETLIFY REQUIREMENTS
    - No hardcoded backend URLs
 
 ═══════════════════════════════════════════════════════════════
-OUTPUT FORMAT REQUIREMENTS
+OUTPUT FORMAT REQUIREMENTS - CRITICAL
 ═══════════════════════════════════════════════════════════════
 
-Generate code as a JSON object with files as keys and content as values.
+YOU MUST OUTPUT VALID JSON. Start your response with a JSON object like this:
+
+{
+  "files": {
+    "index.html": "your HTML code here as a string",
+    "styles.css": "your CSS code here as a string",
+    "app.js": "your JavaScript code here as a string",
+    "netlify.toml": "your netlify config here",
+    "README.md": "your readme here"
+  },
+  "deploy_config": {
+    "build_command": "",
+    "publish_dir": ".",
+    "functions_dir": "netlify/functions",
+    "environment_variables": {}
+  }
+}
+
+CRITICAL RULES:
+- Start response with { and end with }
+- All file content must be properly escaped strings
+- No markdown code blocks - just raw JSON
+- All file paths as keys under "files" object
+- Include netlify.toml file
 
 ═══════════════════════════════════════════════════════════════
 """
