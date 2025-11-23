@@ -106,17 +106,6 @@ CRITICAL NETLIFY REQUIREMENTS
    - Must include `netlify.toml` in project root
    - Standard build command: `npm run build` or static
    - Publish directory: `dist`, `build`, `out`, or `.` (for static sites)
-   - Example netlify.toml:
-     ```toml
-     [build]
-       publish = "dist"
-       functions = "netlify/functions"
-     
-     [[redirects]]
-       from = "/api/*"
-       to = "/.netlify/functions/:splat"
-       status = 200
-     ```
 
 4. **DATABASE INTEGRATION**
    - Use API-based databases: Supabase, FaunaDB, Firebase
