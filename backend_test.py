@@ -1370,38 +1370,318 @@ class NetlifyDeploymentTester:
             logger.error(f"Could not check backend logs: {e}")
             return False, ""
 
-    async def run_comprehensive_editing_test(self):
-        """Run the comprehensive advanced editing system test"""
-        logger.info("🚀 Starting Comprehensive Advanced Editing System Test")
+    async def test_netlify_generate_and_deploy(self, session_id: str) -> Dict[str, Any]:
+        """Test the complete Netlify generation and deployment flow"""
+        logger.info("\n" + "="*80)
+        logger.info("CRITICAL TEST - NETLIFY AUTO-DEPLOYMENT")
+        logger.info("="*80)
+        
+        async with aiohttp.ClientSession() as session:
+            try:
+                start_time = time.time()
+                
+                payload = {
+                    "session_id": session_id,
+                    "prompt": "create a modern landing page for a coffee shop with a hero section, menu, and contact form. use beautiful colors and modern design",
+                    "model": "gpt-5",
+                    "edit_mode": False
+                }
+                
+                logger.info(f"🚀 Generating AND deploying website to Netlify...")
+                logger.info(f"   Session ID: {session_id}")
+                logger.info(f"   Prompt: {payload['prompt']}")
+                
+                async with session.post(
+                    f"{self.base_url}/netlify/generate-and-deploy",
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=300)  # 5 minute timeout
+                ) as response:
+                    generation_time = time.time() - start_time
+                    
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        result = {
+                            "success": True,
+                            "session_id": session_id,
+                            "generation_time": generation_time,
+                            "response_data": data,
+                            "project": data.get('project', {}),
+                            "deployment": data.get('deployment', {}),
+                            "deploy_preview_url": data.get('deploy_preview_url'),
+                            "instant_url": data.get('instant_url')
+                        }
+                        
+                        logger.info(f"✅ Netlify generation and deployment completed in {generation_time:.2f}s")
+                        logger.info(f"   Project ID: {result['project'].get('project_id')}")
+                        logger.info(f"   Deploy Preview URL: {result['deploy_preview_url']}")
+                        
+                        return result
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"❌ Netlify generation and deployment failed: {response.status} - {error_text}")
+                        return {
+                            "success": False,
+                            "session_id": session_id,
+                            "generation_time": generation_time,
+                            "error": f"HTTP {response.status}: {error_text}"
+                        }
+                        
+            except asyncio.TimeoutError:
+                logger.error(f"❌ Netlify generation and deployment timed out after 5 minutes")
+                return {
+                    "success": False,
+                    "session_id": session_id,
+                    "error": "Generation and deployment timed out"
+                }
+            except Exception as e:
+                logger.error(f"❌ Netlify generation and deployment error: {e}")
+                return {
+                    "success": False,
+                    "session_id": session_id,
+                    "error": str(e)
+                }
+
+    async def test_live_url_accessibility(self, url: str) -> Dict[str, Any]:
+        """Test if the live Netlify URL is accessible and contains expected content"""
+        logger.info(f"🌐 Testing live URL accessibility: {url}")
+        
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        content = await response.text()
+                        
+                        # Check if it contains HTML content
+                        has_html = '<html' in content.lower() or '<!doctype html' in content.lower()
+                        has_coffee_content = any([
+                            'coffee' in content.lower(),
+                            'menu' in content.lower(),
+                            'contact' in content.lower(),
+                            'hero' in content.lower()
+                        ])
+                        
+                        result = {
+                            "success": True,
+                            "status_code": response.status,
+                            "content_length": len(content),
+                            "has_html": has_html,
+                            "has_coffee_content": has_coffee_content,
+                            "content_preview": content[:500] + "..." if len(content) > 500 else content
+                        }
+                        
+                        logger.info(f"✅ Live URL is accessible")
+                        logger.info(f"   Status: {response.status}")
+                        logger.info(f"   Content Length: {len(content)} chars")
+                        logger.info(f"   Contains HTML: {has_html}")
+                        logger.info(f"   Contains Coffee Content: {has_coffee_content}")
+                        
+                        return result
+                    else:
+                        logger.error(f"❌ Live URL returned status {response.status}")
+                        return {
+                            "success": False,
+                            "status_code": response.status,
+                            "error": f"HTTP {response.status}"
+                        }
+                        
+            except Exception as e:
+                logger.error(f"❌ Error accessing live URL: {e}")
+                return {
+                    "success": False,
+                    "error": str(e)
+                }
+
+    async def check_backend_logs_for_deployment(self) -> Dict[str, Any]:
+        """Check backend logs for deployment success messages"""
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['tail', '-n', '200', '/var/log/supervisor/backend.out.log'],
+                capture_output=True,
+                text=True
+            )
+            
+            backend_logs = result.stdout
+            
+            # Look for deployment success indicators
+            success_indicators = [
+                "🚀 Creating Netlify site" in backend_logs,
+                "✅ Site created" in backend_logs,
+                "✅ Deployment created" in backend_logs,
+                "✅ Build completed successfully!" in backend_logs,
+                "DEPLOYMENT SUCCESS" in backend_logs
+            ]
+            
+            # Look for error indicators
+            error_indicators = [
+                "text_unidecode" in backend_logs,
+                "ERROR" in backend_logs and "netlify" in backend_logs.lower(),
+                "DEPLOYMENT FAILED" in backend_logs,
+                "Budget has been exceeded" in backend_logs
+            ]
+            
+            return {
+                "success_indicators_found": sum(success_indicators),
+                "error_indicators_found": sum(error_indicators),
+                "has_deployment_success": any(success_indicators),
+                "has_deployment_errors": any(error_indicators),
+                "logs_preview": backend_logs[-1000:] if backend_logs else "No logs found"
+            }
+            
+        except Exception as e:
+            logger.error(f"Could not check backend logs: {e}")
+            return {
+                "success_indicators_found": 0,
+                "error_indicators_found": 0,
+                "has_deployment_success": False,
+                "has_deployment_errors": False,
+                "error": str(e)
+            }
+
+    async def run_netlify_deployment_test(self):
+        """Run the complete Netlify deployment test"""
+        logger.info("🚀 Starting Netlify Generation and Deployment Test")
         logger.info(f"Backend URL: {self.base_url}")
         
         start_time = time.time()
+        validation_errors = []
         
-        # Phase 1: Generate initial website
-        phase_1_result = await self.test_phase_1_initial_generation()
-        if not phase_1_result.get('success'):
-            logger.error("❌ Phase 1 failed - cannot continue with editing tests")
-            return self._generate_final_summary(start_time)
+        # Step 1: Create a test session
+        logger.info("\n--- Step 1: Create Test Session ---")
+        session_id = await self.create_session("Netlify Deployment Test")
+        if not session_id:
+            validation_errors.append("Failed to create test session")
+            return self._generate_netlify_summary(start_time, validation_errors)
         
-        session_id = phase_1_result.get('session_id')
-        original_html = phase_1_result.get('original_html', '')
+        # Step 2: Generate AND deploy website
+        logger.info("\n--- Step 2: Generate and Deploy Website ---")
+        deploy_result = await self.test_netlify_generate_and_deploy(session_id)
         
-        # Phase 2: Test adding features
-        await self.test_phase_2_adding_features(session_id, original_html)
+        if not deploy_result.get('success'):
+            validation_errors.append(f"Generation and deployment failed: {deploy_result.get('error')}")
+            return self._generate_netlify_summary(start_time, validation_errors)
         
-        # Phase 3: Test modifying features
-        await self.test_phase_3_modifying_features(session_id)
+        # Step 3: Verify response contains required fields
+        logger.info("\n--- Step 3: Verify Response Structure ---")
+        project = deploy_result.get('project', {})
+        deployment = deploy_result.get('deployment', {})
+        deploy_preview_url = deploy_result.get('deploy_preview_url')
         
-        # Phase 4: Test removing features
-        await self.test_phase_4_removing_features(session_id)
+        # Check project fields
+        if not project.get('project_id'):
+            validation_errors.append("Response missing project.project_id")
+        if not project.get('files'):
+            validation_errors.append("Response missing project.files")
+        else:
+            files = project.get('files', {})
+            expected_files = ['index.html', 'styles.css']
+            for expected_file in expected_files:
+                if expected_file not in files and not any(expected_file in f for f in files.keys()):
+                    validation_errors.append(f"Missing expected file: {expected_file}")
         
-        # Phase 5: Complex multi-part edit
-        await self.test_phase_5_complex_multi_part_edit(session_id)
+        # Check deployment fields
+        if not deployment.get('site_id'):
+            validation_errors.append("Response missing deployment.site_id")
+        if not deployment.get('deploy_id'):
+            validation_errors.append("Response missing deployment.deploy_id")
+        if not deploy_preview_url:
+            validation_errors.append("Response missing deploy_preview_url")
         
-        # Check backend logs for edit mode
-        edit_mode_detected, logs = await self.check_backend_logs_for_edit_mode()
+        # Check build status
+        build_status = deployment.get('build_status', {})
+        if build_status.get('state') != 'ready':
+            validation_errors.append(f"Build status is not 'ready': {build_status.get('state')}")
         
-        return self._generate_final_summary(start_time, edit_mode_detected)
+        # Step 4: Verify Netlify URL format
+        logger.info("\n--- Step 4: Verify Netlify URL Format ---")
+        if deploy_preview_url:
+            if not deploy_preview_url.startswith('https://'):
+                validation_errors.append(f"Deploy URL is not HTTPS: {deploy_preview_url}")
+            if '.netlify.app' not in deploy_preview_url:
+                validation_errors.append(f"Deploy URL is not a Netlify URL: {deploy_preview_url}")
+            
+            logger.info(f"✅ Deploy Preview URL: {deploy_preview_url}")
+        
+        # Step 5: Test live URL accessibility
+        logger.info("\n--- Step 5: Test Live URL Accessibility ---")
+        if deploy_preview_url:
+            url_test_result = await self.test_live_url_accessibility(deploy_preview_url)
+            
+            if not url_test_result.get('success'):
+                validation_errors.append(f"Live URL not accessible: {url_test_result.get('error')}")
+            else:
+                if url_test_result.get('status_code') != 200:
+                    validation_errors.append(f"Live URL returned status {url_test_result.get('status_code')}")
+                if not url_test_result.get('has_html'):
+                    validation_errors.append("Live URL does not contain HTML content")
+                if not url_test_result.get('has_coffee_content'):
+                    validation_errors.append("Live URL does not contain expected coffee shop content")
+        
+        # Step 6: Check backend logs
+        logger.info("\n--- Step 6: Check Backend Logs ---")
+        log_analysis = await self.check_backend_logs_for_deployment()
+        
+        if not log_analysis.get('has_deployment_success'):
+            validation_errors.append("Backend logs don't show deployment success messages")
+        if log_analysis.get('has_deployment_errors'):
+            validation_errors.append("Backend logs show deployment errors")
+        
+        # Generate final summary
+        return self._generate_netlify_summary(start_time, validation_errors, {
+            "session_id": session_id,
+            "deploy_result": deploy_result,
+            "url_test_result": url_test_result if deploy_preview_url else None,
+            "log_analysis": log_analysis,
+            "deploy_preview_url": deploy_preview_url
+        })
+
+    def _generate_netlify_summary(self, start_time: float, validation_errors: List[str], test_data: Dict[str, Any] = None):
+        """Generate final Netlify test summary"""
+        total_time = time.time() - start_time
+        success = len(validation_errors) == 0
+        
+        logger.info("\n" + "="*80)
+        logger.info("NETLIFY GENERATION AND DEPLOYMENT TEST SUMMARY")
+        logger.info("="*80)
+        logger.info(f"Overall Result: {'✅ SUCCESS' if success else '❌ FAILED'}")
+        logger.info(f"Total Time: {total_time:.2f}s")
+        logger.info(f"Validation Errors: {len(validation_errors)}")
+        
+        if test_data:
+            logger.info(f"Session ID: {test_data.get('session_id')}")
+            logger.info(f"Deploy Preview URL: {test_data.get('deploy_preview_url', 'N/A')}")
+            
+            deploy_result = test_data.get('deploy_result', {})
+            if deploy_result.get('success'):
+                logger.info(f"Generation Time: {deploy_result.get('generation_time', 0):.2f}s")
+                project = deploy_result.get('project', {})
+                deployment = deploy_result.get('deployment', {})
+                logger.info(f"Project ID: {project.get('project_id', 'N/A')}")
+                logger.info(f"Site ID: {deployment.get('site_id', 'N/A')}")
+                logger.info(f"Deploy ID: {deployment.get('deploy_id', 'N/A')}")
+                logger.info(f"Build Status: {deployment.get('build_status', {}).get('state', 'N/A')}")
+        
+        if validation_errors:
+            logger.info("\nVALIDATION ERRORS:")
+            for error in validation_errors:
+                logger.error(f"❌ {error}")
+        else:
+            logger.info("\n✅ All validation criteria passed!")
+            logger.info("   - Session created successfully")
+            logger.info("   - Website generated and deployed to Netlify")
+            logger.info("   - Response contains all required fields")
+            logger.info("   - Deploy preview URL is valid Netlify URL")
+            logger.info("   - Live URL is accessible and contains expected content")
+            logger.info("   - Backend logs show deployment success")
+        
+        return {
+            "success": success,
+            "total_time": total_time,
+            "validation_errors": validation_errors,
+            "test_data": test_data or {}
+        }
 
     def _generate_final_summary(self, start_time: float, edit_mode_detected: bool = False):
         """Generate final test summary"""
