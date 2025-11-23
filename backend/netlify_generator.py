@@ -167,8 +167,9 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
             chat.with_params(max_tokens=16000)
             
             # Retry logic for API failures (502 errors, rate limits, etc.)
-            max_retries = 3
-            retry_delay = 2
+            max_retries = 5  # Increased retries
+            retry_delay = 3  # Longer initial delay
+            response = None
             
             for attempt in range(max_retries):
                 try:
@@ -177,13 +178,21 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
                     break
                 except Exception as e:
                     error_str = str(e)
-                    if '502' in error_str or 'BadGateway' in error_str:
-                        if attempt < max_retries - 1:
-                            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
-                            logger.warning(f"⚠️ 502 error on attempt {attempt + 1}/{max_retries}. Retrying in {wait_time}s...")
-                            await asyncio.sleep(wait_time)
-                            continue
-                    raise  # Re-raise if not 502 or last attempt
+                    is_502 = '502' in error_str or 'BadGateway' in error_str
+                    is_timeout = 'timeout' in error_str.lower() or 'timed out' in error_str.lower()
+                    
+                    if (is_502 or is_timeout) and attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff: 3s, 6s, 12s, 24s, 48s
+                        logger.warning(f"⚠️ API error on attempt {attempt + 1}/{max_retries}. Retrying in {wait_time}s...")
+                        logger.warning(f"   Error: {error_str[:200]}")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"❌ API failed after {attempt + 1} attempts: {error_str}")
+                        raise  # Re-raise if not retryable or last attempt
+            
+            if response is None:
+                raise Exception("Failed to get response from AI after all retries")
             
             # Parse the JSON response
             project_data = self._parse_project_response(response)
