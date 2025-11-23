@@ -1216,10 +1216,10 @@ Respond with JSON:
         i = start_pos
         while i < len(text):
             if text[i] == '"':
-                # Check if it's escaped
+                # Check if it's escaped by counting preceding backslashes
                 num_backslashes = 0
                 j = i - 1
-                while j >= start_pos and text[j] == '\\':
+                while j >= 0 and text[j] == '\\':  # Changed from >= start_pos to >= 0
                     num_backslashes += 1
                     j -= 1
                 
