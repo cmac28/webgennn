@@ -26,6 +26,9 @@ class NetlifyGenerator:
         self._last_health_check = None
         self._health_check_interval = 60  # seconds
         self._service_healthy = True
+        self._last_request_time = 0
+        self._min_request_interval = 1.0  # Minimum 1 second between requests
+        self._request_semaphore = asyncio.Semaphore(3)  # Max 3 concurrent requests
     
     async def _check_api_health(self, provider: str, model: str) -> bool:
         """
