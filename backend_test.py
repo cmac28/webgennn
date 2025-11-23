@@ -190,11 +190,11 @@ class NetlifyDeploymentTester:
                 }
 
     async def check_backend_logs_for_deployment(self) -> Dict[str, Any]:
-        """Check backend logs for deployment success messages"""
+        """Check backend logs for deployment success messages and AI response details"""
         try:
             import subprocess
             result = subprocess.run(
-                ['tail', '-n', '200', '/var/log/supervisor/backend.out.log'],
+                ['tail', '-n', '500', '/var/log/supervisor/backend.out.log'],
                 capture_output=True,
                 text=True
             )
@@ -215,15 +215,33 @@ class NetlifyDeploymentTester:
                 "text_unidecode" in backend_logs,
                 "ERROR" in backend_logs and "netlify" in backend_logs.lower(),
                 "DEPLOYMENT FAILED" in backend_logs,
-                "Budget has been exceeded" in backend_logs
+                "Budget has been exceeded" in backend_logs,
+                "encountered an error" in backend_logs,
+                "PARSING COMPLETELY FAILED" in backend_logs
             ]
+            
+            # Look for AI response character count (max_tokens fix verification)
+            ai_response_chars = None
+            import re
+            char_match = re.search(r'AI Response received: (\d+) characters', backend_logs)
+            if char_match:
+                ai_response_chars = int(char_match.group(1))
+            
+            # Look for truncation errors
+            has_truncation_errors = any([
+                "truncated" in backend_logs.lower(),
+                "incomplete" in backend_logs.lower(),
+                "cut off" in backend_logs.lower()
+            ])
             
             return {
                 "success_indicators_found": sum(success_indicators),
                 "error_indicators_found": sum(error_indicators),
                 "has_deployment_success": any(success_indicators),
                 "has_deployment_errors": any(error_indicators),
-                "logs_preview": backend_logs[-1000:] if backend_logs else "No logs found"
+                "ai_response_chars": ai_response_chars,
+                "has_truncation_errors": has_truncation_errors,
+                "logs_preview": backend_logs[-1500:] if backend_logs else "No logs found"
             }
             
         except Exception as e:
@@ -233,6 +251,8 @@ class NetlifyDeploymentTester:
                 "error_indicators_found": 0,
                 "has_deployment_success": False,
                 "has_deployment_errors": False,
+                "ai_response_chars": None,
+                "has_truncation_errors": False,
                 "error": str(e)
             }
 
