@@ -105,13 +105,13 @@
 user_problem_statement: "The AI website generator needs to generate proper websites with separate files (HTML, CSS, JS, Backend) that are linked together and served from a proper file server for professional previews. The generated backend should also be able to run. CRITICAL UPDATE: System migrated to Netlify architecture for instant deploy previews. User reports MASSIVE DESIGN QUALITY DEGRADATION - generated sites are now blank white backgrounds with basic text instead of the beautiful, modern designs with proper frameworks and styling that were working before."
 
 backend:
-  - task: "Netlify Generator - Restore Beautiful Design Quality"
+  - task: "Netlify Generator - CRITICAL Credit Waste & Error Fix"
     implemented: true
     working: true
     file: "/app/backend/netlify_generator.py"
     stuck_count: 0
     priority: "P0"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "needs_testing"
         agent: "main"
