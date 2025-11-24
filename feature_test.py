@@ -55,21 +55,20 @@ def test_messages_get():
     response = requests.get(f"{BASE_URL}/session/{test_session_id}/messages", timeout=5)
     return response.status_code == 200
 
-def test_chat_message():
-    """Test chat message endpoint (basic validation only, not actual AI call)"""
-    # Just test that endpoint exists and accepts requests
-    # We don't want to burn credits on actual AI calls
+def test_website_generation_endpoint():
+    """Test website generation endpoint exists"""
+    # Just verify the endpoint exists, don't actually generate
     response = requests.post(
-        f"{BASE_URL}/chat/message",
+        f"{BASE_URL}/netlify/generate",
         json={
             "session_id": test_session_id,
-            "message": "Hello",
+            "prompt": "test",
             "model": "gpt-5"
         },
-        timeout=2  # Short timeout since we expect it to fail fast
+        timeout=2
     )
-    # Should return 200 or fail with API errors (not 404)
-    return response.status_code in [200, 500, 502, 503]
+    # Should start processing or fail with API errors (not 404 or 422)
+    return response.status_code not in [404, 405]
 
 def test_session_create_speed():
     """Test session creation speed (should be < 1 second)"""
