@@ -284,36 +284,8 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
             else:
                 logger.info(f"✅ Successfully parsed {len(project_data['files'])} files from JSON response")
             
-            # Validate Netlify requirements
+            # Basic validation only (removed extra requirement checks that burn credits)
             self._validate_netlify_project(project_data)
-            
-            # CRITICAL: Validate that all user requirements are met
-            html_content = project_data.get("files", {}).get("index.html", "")
-            validation = self._validate_requirements(html_content, requirements)
-            
-            logger.info("📊 Requirements validation:")
-            logger.info(f"   Completeness: {validation['completeness_score']:.1f}%")
-            logger.info(f"   Found: {len(validation['found_requirements'])} requirements")
-            logger.info(f"   Missing: {len(validation['missing_requirements'])} requirements")
-            
-            if validation["missing_requirements"]:
-                logger.warning("⚠️ Missing requirements detected:")
-                for missing in validation["missing_requirements"]:
-                    logger.warning(f"   - {missing}")
-                
-                # If more than 30% requirements missing, retry with enhanced prompt
-                if validation["completeness_score"] < 70:
-                    logger.error(f"❌ Completeness score too low ({validation['completeness_score']:.1f}%)")
-                    logger.info("🔄 Retrying with enhanced prompt to include missing requirements...")
-                    
-                    # Retry with explicit missing requirements
-                    retry_result = await self._retry_with_missing_requirements(
-                        prompt, requirements, validation["missing_requirements"],
-                        provider, model, session_id
-                    )
-                    
-                    if retry_result:
-                        return retry_result
             
             logger.info(f"✅ Netlify project ready with {len(project_data['files'])} files")
             return project_data
