@@ -235,7 +235,106 @@ class BulletproofFailsafeTester:
                     "error": str(e)
                 }
 
-    async def check_backend_logs_for_deployment(self) -> Dict[str, Any]:
+    async def check_database_projects(self) -> Dict[str, Any]:
+        """TEST 4: Database Check - Verify projects are saved with complete data"""
+        logger.info("\n--- TEST 4: DATABASE CHECK ---")
+        
+        try:
+            # Use MongoDB command to check projects
+            result = subprocess.run([
+                'mongo', 'code_weaver_db', '--eval',
+                'db.netlify_projects.find({}, {session_id:1, "files.index.html":1, netlify_site_id:1, deploy_preview_url:1}).limit(5).forEach(printjson)'
+            ], capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                output = result.stdout
+                
+                # Count projects with complete data
+                projects_with_files = output.count('"index.html"')
+                projects_with_site_id = output.count('netlify_site_id')
+                projects_with_deploy_url = output.count('deploy_preview_url')
+                
+                # Check for substantial HTML content (>1000 chars)
+                html_size_matches = re.findall(r'"index\.html"\s*:\s*"[^"]{1000,}', output)
+                substantial_html_count = len(html_size_matches)
+                
+                return {
+                    "success": True,
+                    "projects_with_files": projects_with_files,
+                    "projects_with_site_id": projects_with_site_id,
+                    "projects_with_deploy_url": projects_with_deploy_url,
+                    "substantial_html_count": substantial_html_count,
+                    "database_output": output[:1000] + "..." if len(output) > 1000 else output
+                }
+            else:
+                logger.error(f"MongoDB query failed: {result.stderr}")
+                return {
+                    "success": False,
+                    "error": f"MongoDB error: {result.stderr}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Database check failed: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def test_stress_multiple_requests(self) -> Dict[str, Any]:
+        """TEST 5: Stress Test - Multiple rapid requests to verify no conflicts"""
+        logger.info("\n--- TEST 5: STRESS TEST - MULTIPLE RAPID REQUESTS ---")
+        
+        prompts = [
+            "Create website for business 1 - a coffee shop",
+            "Create website for business 2 - a tech startup", 
+            "Create website for business 3 - a photography studio"
+        ]
+        
+        tasks = []
+        start_time = time.time()
+        
+        for i, prompt in enumerate(prompts, 1):
+            session_id = await self.create_session(f"Stress Test {i}")
+            if session_id:
+                task = self.test_normal_ai_generation(session_id, prompt)
+                tasks.append(task)
+        
+        if not tasks:
+            return {"success": False, "error": "Failed to create sessions for stress test"}
+        
+        # Run all requests concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        total_time = time.time() - start_time
+        
+        # Analyze results
+        successful_requests = 0
+        failed_requests = 0
+        unique_websites = set()
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Request {i+1} failed with exception: {result}")
+                failed_requests += 1
+            elif result.get('success'):
+                successful_requests += 1
+                # Check uniqueness by HTML content hash
+                html_content = result.get('project', {}).get('files', {}).get('index.html', '')
+                unique_websites.add(hash(html_content))
+            else:
+                failed_requests += 1
+        
+        return {
+            "success": successful_requests > 0,
+            "total_requests": len(tasks),
+            "successful_requests": successful_requests,
+            "failed_requests": failed_requests,
+            "unique_websites": len(unique_websites),
+            "total_time": total_time,
+            "no_race_conditions": len(unique_websites) == successful_requests,
+            "results": results
+        }
+
+    async def check_backend_logs_for_failsafe(self) -> Dict[str, Any]:
         """Check backend logs for deployment success messages and AI response details"""
         try:
             import subprocess
