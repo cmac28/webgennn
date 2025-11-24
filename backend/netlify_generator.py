@@ -1490,3 +1490,620 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 console.log('Deployed on Netlify with instant Deploy Previews');
 console.log('Environment:', window.location.hostname);
 """
+
+    
+    def _analyze_prompt_for_fallback(self, prompt: str) -> Dict[str, Any]:
+        """Analyze prompt to determine what type of website to generate as fallback"""
+        prompt_lower = prompt.lower()
+        
+        # Detect business type
+        business_type = "general"
+        if any(word in prompt_lower for word in ["restaurant", "cafe", "coffee", "food", "dining"]):
+            business_type = "restaurant"
+        elif any(word in prompt_lower for word in ["renovation", "construction", "remodeling", "contractor", "builder"]):
+            business_type = "renovation"
+        elif any(word in prompt_lower for word in ["portfolio", "designer", "photographer", "artist", "creative"]):
+            business_type = "portfolio"
+        elif any(word in prompt_lower for word in ["shop", "store", "ecommerce", "product", "buy", "sell"]):
+            business_type = "ecommerce"
+        elif any(word in prompt_lower for word in ["tech", "software", "saas", "app", "startup"]):
+            business_type = "tech"
+        elif any(word in prompt_lower for word in ["landing", "marketing", "agency"]):
+            business_type = "landing"
+        
+        # Extract business name if mentioned
+        business_name = "Your Business"
+        # Simple extraction - look for "for [name]" or "[name] website"
+        import re
+        for_match = re.search(r'for (?:a |an |the )?([A-Z][A-Za-z\s&]+?)(?:\s+that|\s+with|\s*$)', prompt)
+        if for_match:
+            business_name = for_match.group(1).strip()
+        
+        # Detect required sections
+        sections = []
+        if "about" in prompt_lower:
+            sections.append("about")
+        if "service" in prompt_lower or "what we do" in prompt_lower:
+            sections.append("services")
+        if "contact" in prompt_lower or "get in touch" in prompt_lower:
+            sections.append("contact")
+        if "portfolio" in prompt_lower or "work" in prompt_lower or "projects" in prompt_lower:
+            sections.append("portfolio")
+        if "team" in prompt_lower or "our team" in prompt_lower:
+            sections.append("team")
+        if "testimonial" in prompt_lower or "review" in prompt_lower:
+            sections.append("testimonials")
+        
+        # Default sections if none detected
+        if not sections:
+            sections = ["about", "services", "contact"]
+        
+        return {
+            "business_type": business_type,
+            "business_name": business_name,
+            "sections": sections,
+            "style": "modern"
+        }
+    
+    def _generate_smart_fallback(self, prompt: str, analysis: Dict) -> Dict[str, Any]:
+        """Generate an intelligent, customized fallback based on prompt analysis"""
+        business_type = analysis.get("business_type", "general")
+        business_name = analysis.get("business_name", "Your Business")
+        sections = analysis.get("sections", ["about", "services", "contact"])
+        
+        logger.info(f"🎨 Generating smart fallback: {business_type} for '{business_name}'")
+        
+        # Generate customized HTML based on business type
+        html = self._generate_customized_html(business_type, business_name, sections, prompt)
+        css = self._generate_modern_css()
+        js = self._generate_interactive_js()
+        
+        return {
+            "files": {
+                "index.html": html,
+                "styles.css": css,
+                "app.js": js,
+                "netlify.toml": self._generate_netlify_toml()
+            },
+            "deploy_config": {
+                "build_command": "",
+                "publish_dir": ".",
+                "functions_dir": "netlify/functions"
+            }
+        }
+    
+    def _generate_customized_html(self, business_type: str, business_name: str, sections: List[str], prompt: str) -> str:
+        """Generate customized HTML based on business type"""
+        
+        # Business-specific content
+        if business_type == "renovation":
+            hero_title = f"{business_name}"
+            hero_subtitle = "Professional Renovation Services"
+            services_list = [
+                {"icon": "fa-hammer", "title": "Flooring", "desc": "Professional flooring installation"},
+                {"icon": "fa-bath", "title": "Bathrooms", "desc": "Complete bathroom remodeling"},
+                {"icon": "fa-kitchen-set", "title": "Kitchens", "desc": "Modern kitchen renovations"},
+                {"icon": "fa-house-chimney", "title": "Full Houses", "desc": "Whole home renovations"}
+            ]
+        elif business_type == "restaurant":
+            hero_title = f"{business_name}"
+            hero_subtitle = "Delicious Food, Amazing Experience"
+            services_list = [
+                {"icon": "fa-utensils", "title": "Fine Dining", "desc": "Gourmet cuisine"},
+                {"icon": "fa-mug-hot", "title": "Beverages", "desc": "Coffee and drinks"},
+                {"icon": "fa-birthday-cake", "title": "Desserts", "desc": "Sweet treats"},
+                {"icon": "fa-truck", "title": "Delivery", "desc": "Fast delivery service"}
+            ]
+        elif business_type == "tech":
+            hero_title = f"{business_name}"
+            hero_subtitle = "Innovative Technology Solutions"
+            services_list = [
+                {"icon": "fa-code", "title": "Development", "desc": "Custom software development"},
+                {"icon": "fa-mobile-screen", "title": "Mobile Apps", "desc": "iOS and Android apps"},
+                {"icon": "fa-cloud", "title": "Cloud Services", "desc": "Scalable cloud solutions"},
+                {"icon": "fa-shield", "title": "Security", "desc": "Enterprise security"}
+            ]
+        elif business_type == "portfolio":
+            hero_title = f"{business_name}"
+            hero_subtitle = "Creative Professional"
+            services_list = [
+                {"icon": "fa-palette", "title": "Design", "desc": "Creative design work"},
+                {"icon": "fa-camera", "title": "Photography", "desc": "Professional photos"},
+                {"icon": "fa-video", "title": "Video", "desc": "Video production"},
+                {"icon": "fa-pen-nib", "title": "Branding", "desc": "Brand identity"}
+            ]
+        else:
+            hero_title = f"{business_name}"
+            hero_subtitle = "Professional Services You Can Trust"
+            services_list = [
+                {"icon": "fa-star", "title": "Quality", "desc": "High-quality service"},
+                {"icon": "fa-users", "title": "Team", "desc": "Expert professionals"},
+                {"icon": "fa-clock", "title": "Fast", "desc": "Quick turnaround"},
+                {"icon": "fa-check", "title": "Reliable", "desc": "Dependable results"}
+            ]
+        
+        # Build services HTML
+        services_html = ""
+        for service in services_list:
+            services_html += f'''
+                <div class="service-card">
+                    <i class="fas {service['icon']} service-icon"></i>
+                    <h3>{service['title']}</h3>
+                    <p>{service['desc']}</p>
+                </div>'''
+        
+        # Build navigation based on sections
+        nav_items = []
+        if "about" in sections:
+            nav_items.append('<a href="#about">About</a>')
+        if "services" in sections:
+            nav_items.append('<a href="#services">Services</a>')
+        if "portfolio" in sections:
+            nav_items.append('<a href="#portfolio">Portfolio</a>')
+        if "team" in sections:
+            nav_items.append('<a href="#team">Team</a>')
+        if "testimonials" in sections:
+            nav_items.append('<a href="#testimonials">Testimonials</a>')
+        if "contact" in sections:
+            nav_items.append('<a href="#contact">Contact</a>')
+        
+        nav_html = '\n                '.join(nav_items)
+        
+        # Build sections HTML
+        sections_html = ""
+        
+        if "about" in sections:
+            sections_html += f'''
+        <section id="about" class="section">
+            <div class="container">
+                <h2 class="section-title">About Us</h2>
+                <p class="section-text">We are dedicated professionals committed to delivering exceptional results. Our team brings years of experience and expertise to every project.</p>
+            </div>
+        </section>'''
+        
+        if "services" in sections:
+            sections_html += f'''
+        <section id="services" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title">Our Services</h2>
+                <div class="services-grid">
+                    {services_html}
+                </div>
+            </div>
+        </section>'''
+        
+        if "contact" in sections:
+            sections_html += f'''
+        <section id="contact" class="section">
+            <div class="container">
+                <h2 class="section-title">Get In Touch</h2>
+                <form class="contact-form">
+                    <input type="text" placeholder="Your Name" required>
+                    <input type="email" placeholder="Your Email" required>
+                    <textarea placeholder="Your Message" rows="5" required></textarea>
+                    <button type="submit" class="cta-button">Send Message</button>
+                </form>
+            </div>
+        </section>'''
+        
+        return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{business_name}</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">{business_name}</div>
+            <div class="nav-links">
+                {nav_html}
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">{hero_title}</h1>
+            <p class="hero-subtitle">{hero_subtitle}</p>
+            <button class="cta-button">Get Started</button>
+        </div>
+    </header>
+
+    {sections_html}
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 {business_name}. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>'''
+    
+    def _generate_modern_css(self) -> str:
+        """Generate modern, professional CSS"""
+        return '''* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navigation */
+.navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-brand {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.3s;
+}
+
+.nav-links a:hover {
+    opacity: 0.8;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 150px 20px 100px;
+    text-align: center;
+    margin-top: 60px;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    animation: fadeInUp 0.8s ease;
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+.cta-button {
+    background: white;
+    color: #667eea;
+    padding: 1rem 3rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* Sections */
+.section {
+    padding: 80px 20px;
+}
+
+.section-alt {
+    background: #f8f9fa;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    color: #2d3748;
+}
+
+.section-text {
+    text-align: center;
+    font-size: 1.2rem;
+    max-width: 700px;
+    margin: 0 auto;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+/* Services Grid */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.service-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.service-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+}
+
+.service-icon {
+    font-size: 3rem;
+    color: #667eea;
+    margin-bottom: 1rem;
+}
+
+.service-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #2d3748;
+}
+
+.service-card p {
+    color: #718096;
+}
+
+/* Contact Form */
+.contact-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.contact-form input,
+.contact-form textarea {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.contact-form button {
+    width: 100%;
+}
+
+/* Footer */
+.footer {
+    background: #2d3748;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+}'''
+    
+    def _generate_interactive_js(self) -> str:
+        """Generate interactive JavaScript"""
+        return '''// Smooth scrolling for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+
+// Form submission handler
+const contactForm = document.querySelector('.contact-form');
+if (contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Thank you for your message! We will get back to you soon.');
+        this.reset();
+    });
+}
+
+// CTA button handler
+document.querySelectorAll('.cta-button').forEach(button => {
+    button.addEventListener('click', function() {
+        const contactSection = document.getElementById('contact');
+        if (contactSection) {
+            contactSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+});
+
+// Add fade-in animation on scroll
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -100px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+document.querySelectorAll('.service-card').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(card);
+});
+
+console.log('🚀 Website loaded successfully!');'''
+    
+    def _generate_netlify_toml(self) -> str:
+        """Generate netlify.toml configuration"""
+        return '''[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200'''
+    
+    def _generate_minimal_viable_project(self, prompt: str) -> Dict[str, Any]:
+        """Absolute last resort - generate minimal but functional project"""
+        logger.warning("🆘 Generating minimal viable project as last resort")
+        
+        return {
+            "files": {
+                "index.html": '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Website</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: fadeIn 1s ease;
+        }
+        p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            animation: fadeIn 1s ease 0.3s both;
+        }
+        .button {
+            background: white;
+            color: #667eea;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            animation: fadeIn 1s ease 0.6s both;
+            transition: transform 0.3s;
+        }
+        .button:hover {
+            transform: scale(1.05);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome</h1>
+        <p>Your website is being created. This is a placeholder while we finalize the design.</p>
+        <a href="#" class="button">Get Started</a>
+    </div>
+</body>
+</html>''',
+                "styles.css": "/* Styles embedded in HTML */",
+                "app.js": "console.log('Website loaded');",
+                "netlify.toml": "[build]\n  publish = \".\""
+            },
+            "deploy_config": {
+                "build_command": "",
+                "publish_dir": ".",
+                "functions_dir": "netlify/functions"
+            }
+        }
+
