@@ -210,8 +210,8 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
             # Set max_tokens to allow complete responses
             chat.with_params(max_tokens=16000)
             
-            # OPTIMIZED: Reduced retries to save credits and time
-            max_retries = 2  # Only retry once (2 total attempts)
+            # Try with increased retries to avoid premature fallback
+            max_retries = 4  # Give AI more chances before falling back
             response = None
             last_error = None
             
@@ -219,19 +219,21 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
                 try:
                     logger.info(f"🔄 Generation attempt {attempt + 1}/{max_retries}")
                     
-                    # Single streamlined request with 60s timeout
+                    # Request with 90s timeout for complex generations
                     response = await asyncio.wait_for(
                         chat.send_message(UserMessage(text=user_prompt)),
-                        timeout=60.0  # Reduced to 60 seconds
+                        timeout=90.0
                     )
                     logger.info(f"✅ AI Response received: {len(response)} characters")
                     break
                     
                 except asyncio.TimeoutError:
-                    last_error = "Request timed out after 60 seconds"
+                    last_error = "Request timed out after 90 seconds"
                     logger.warning(f"⏱️ Timeout on attempt {attempt + 1}/{max_retries}")
                     if attempt < max_retries - 1:
-                        logger.warning(f"   Retrying immediately...")
+                        wait_time = min(3 * (attempt + 1), 10)  # 3s, 6s, 9s, max 10s
+                        logger.warning(f"   Retrying after {wait_time}s delay...")
+                        await asyncio.sleep(wait_time)
                         continue
                     
                 except Exception as e:
@@ -239,14 +241,16 @@ Generate complete JSON with all 3 files. Make it visually stunning!"""
                     last_error = error_str
                     logger.error(f"❌ Error on attempt {attempt + 1}/{max_retries}: {error_str[:150]}")
                     
-                    # Only retry once for 502/503 errors
+                    # Retry for 502/503 errors with exponential backoff
                     if attempt < max_retries - 1:
                         is_502 = '502' in error_str or 'BadGateway' in error_str.lower()
                         is_503 = '503' in error_str or 'service unavailable' in error_str.lower()
+                        is_429 = '429' in error_str or 'rate limit' in error_str.lower()
                         
-                        if is_502 or is_503:
-                            logger.warning(f"   Retrying once after 2s delay...")
-                            await asyncio.sleep(2)
+                        if is_502 or is_503 or is_429:
+                            wait_time = min(3 * (attempt + 1), 10)  # 3s, 6s, 9s, max 10s
+                            logger.warning(f"   Retrying after {wait_time}s delay...")
+                            await asyncio.sleep(wait_time)
                             continue
                     
                     # Don't retry for other errors
