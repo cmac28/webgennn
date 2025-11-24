@@ -97,7 +97,7 @@ def main():
         ("Session Creation", test_session_create),
         ("Session Retrieval", test_session_get),
         ("Messages Retrieval", test_messages_get),
-        ("Chat Message Endpoint", test_chat_message),
+        ("Website Generation Endpoint", test_website_generation_endpoint),
         ("Session Creation Speed (<1s)", test_session_create_speed),
         ("Netlify Project Endpoint", test_netlify_project_get),
     ]
